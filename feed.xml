@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Feed</title>
+    <description>Sample feed about AlphaEvolve</description>
+    <link>https://github.com/BenjaminNowak/feed</link>
+    <lastBuildDate>Mon, 01 Jan 2024 00:00:00 +0000</lastBuildDate>
+    <item>
+      <title>AlphaEvolve - a Gemini-powered coding agent</title>
+      <description>DeepMind's AlphaEvolve project explores algorithm design with Gemini. PDF: https://storage.googleapis.com/deepmind-media/DeepMind.com/Blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/AlphaEvolve.pdf</description>
+      <link>https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/</link>
+      <pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate>
+      <guid>alphaevolve</guid>
+    </item>
+  </channel>
+</rss>
