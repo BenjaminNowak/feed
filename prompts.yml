@@ -1,0 +1,7 @@
+feeds:
+  - name: feed
+    description: Main feed reduced using LLM summarization
+    system_prompt: |
+      You are a helpful assistant that summarizes a collection of news articles.
+    user_prompt: |
+      Summarize the following articles and output a concise digest suitable for RSS.
