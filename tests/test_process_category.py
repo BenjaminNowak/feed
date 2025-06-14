@@ -162,6 +162,18 @@ def test_main_high_quality_articles(
     items = test_items(15)
     mock_dependencies["fetcher"].get_stream_contents.return_value = {"items": items}
 
+    # Mock MongoDB behavior for the new flow:
+    # 1. First, find_one returns None for all items (they don't exist yet)
+    # 2. Then, find returns the items as pending for processing
+    pending_items = [
+        {**item, "category": "ML", "processing_status": "pending"} for item in items
+    ]
+
+    # Mock the MongoDB find method to return pending items
+    mock_dependencies[
+        "mongo"
+    ].feed_items.find.return_value.sort.return_value = pending_items
+
     # Make first 12 items high quality (>= 0.6 relevance)
     mock_dependencies["llm"].analyze_item.side_effect = [
         {"relevance_score": 0.8}
@@ -179,7 +191,7 @@ def test_main_high_quality_articles(
     # Should have called git_commit_and_push once after update_feed
     mock_git_commit.assert_called_once()
 
-    # Verify all items were processed
+    # Verify items were stored during fetch phase (called once for each item)
     assert mock_dependencies["mongo"].store_feed_items.call_count == 15
 
 
@@ -194,6 +206,18 @@ def test_main_no_high_quality_articles(
     # Setup test data
     items = test_items(5)
     mock_dependencies["fetcher"].get_stream_contents.return_value = {"items": items}
+
+    # Mock MongoDB behavior for the new flow:
+    # 1. First, find_one returns None for all items (they don't exist yet)
+    # 2. Then, find returns the items as pending for processing
+    pending_items = [
+        {**item, "category": "ML", "processing_status": "pending"} for item in items
+    ]
+
+    # Mock the MongoDB find method to return pending items
+    mock_dependencies[
+        "mongo"
+    ].feed_items.find.return_value.sort.return_value = pending_items
 
     # Make all items low quality (< 0.6 relevance)
     mock_dependencies["llm"].analyze_item.return_value = {
@@ -210,5 +234,5 @@ def test_main_no_high_quality_articles(
     # Should not have called git_commit_and_push
     mock_git_commit.assert_not_called()
 
-    # Verify all items were processed
+    # Verify items were stored during fetch phase (called once for each item)
     assert mock_dependencies["mongo"].store_feed_items.call_count == 5

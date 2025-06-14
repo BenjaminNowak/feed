@@ -404,8 +404,6 @@ def main(category_key: Optional[str] = None):
     if category_key is None:
         category_key = "ML"  # Default for backward compatibility
 
-    high_quality_count = 0
-
     try:
         # Load category configuration
         category_config = CategoryConfig()
@@ -422,18 +420,45 @@ def main(category_key: Optional[str] = None):
         print(f"High quality target: {high_quality_target}")
         print(f"Output feed: {output_feed}")
 
-        # Initialize components
-        fetcher, content_analyzer, llm_filter, mongo_client = _initialize_components(
+        # Step 1: Fetch new articles from Feedly and store them in MongoDB
+        print(f"\n{'='*50}")
+        print("STEP 1: FETCHING NEW ARTICLES FROM FEEDLY")
+        print(f"{'='*50}")
+
+        new_articles_count = fetch_category_articles(category_key, category_config)
+        print(f"Fetched {new_articles_count} new articles from Feedly")
+
+        # Step 2: Process all pending articles from MongoDB (both new and existing)
+        print(f"\n{'='*50}")
+        print("STEP 2: PROCESSING PENDING ARTICLES FROM MONGODB")
+        print(f"{'='*50}")
+
+        # Initialize components for processing
+        _, content_analyzer, llm_filter, mongo_client = _initialize_components(
             category_key, category_config
         )
 
-        # Get category data
-        user_id = os.environ.get("FEEDLY_USER")
-        data = _get_category_data(fetcher, user_id, category_key, category_config)
+        # Get all pending articles for this category from MongoDB
+        pending_articles = list(
+            mongo_client.feed_items.find(
+                {"category": category_key, "processing_status": "pending"}
+            ).sort(
+                "published", 1
+            )  # Process oldest first
+        )
 
-        # Process each item
-        for i, item in enumerate(data["items"], 1):
-            print(f"\nProcessing item {i}/{len(data['items'])}")
+        print(f"Found {len(pending_articles)} pending articles to process")
+
+        if len(pending_articles) == 0:
+            print("No pending articles to process")
+            _print_final_stats(mongo_client)
+            return
+
+        high_quality_count = 0
+
+        # Process each pending article
+        for i, item in enumerate(pending_articles, 1):
+            print(f"\nProcessing item {i}/{len(pending_articles)}")
             print(f"Title: {item.get('title', 'No title')}")
 
             try:
@@ -441,8 +466,20 @@ def main(category_key: Optional[str] = None):
                     item, content_analyzer, llm_filter, mongo_client, quality_threshold
                 )
 
-                if quality_result is None:  # Item was skipped
+                if quality_result is None:  # Item was skipped (already analyzed)
                     continue
+
+                # Update the item in MongoDB with analysis results
+                mongo_client.feed_items.update_one(
+                    {"id": item["id"]},
+                    {
+                        "$set": {
+                            "content_analysis": item.get("content_analysis"),
+                            "llm_analysis": item.get("llm_analysis"),
+                            "processing_status": item.get("processing_status"),
+                        }
+                    },
+                )
 
                 if quality_result == 1:  # High quality
                     high_quality_count += 1
@@ -456,10 +493,6 @@ def main(category_key: Optional[str] = None):
                         update_feed.main()
                         git_commit_and_push()
                         high_quality_count = 0  # Reset counter
-
-                # Clean up and store item
-                _clean_item_data(item)
-                mongo_client.store_feed_items([item])
 
             except Exception as e:
                 print(f"Error processing item: {e}")
