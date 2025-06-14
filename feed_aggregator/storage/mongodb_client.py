@@ -106,6 +106,10 @@ class MongoDBClient:
         if llm_analysis:
             update_data["llm_analysis"] = llm_analysis
 
+        # Mark as published if that's the new status
+        if status == "published":
+            update_data["published_to_feed"] = True
+
         result = self.feed_items.update_one({"id": item_id}, {"$set": update_data})
 
         return result.modified_count > 0
@@ -113,20 +117,24 @@ class MongoDBClient:
     def get_filtered_items(
         self, min_score: float = 0.7, limit: int = 100
     ) -> List[Dict]:
-        """Get processed items that meet the relevance threshold.
+        """Get processed items that meet the relevance threshold and haven't been published.
 
         Args:
             min_score: Minimum relevance score (0-1)
             limit: Maximum number of items to return
 
         Returns:
-            List of high-scoring items
+            List of high-scoring items that haven't been published to feed
         """
         return list(
             self.feed_items.find(
                 {
-                    "processing_status": "processed",
+                    "processing_status": {"$in": ["processed", "filtered_out"]},
                     "llm_analysis.relevance_score": {"$gte": min_score},
+                    "$or": [
+                        {"published_to_feed": {"$exists": False}},
+                        {"published_to_feed": False},
+                    ],
                 },
                 limit=limit,
             ).sort("published", ASCENDING)

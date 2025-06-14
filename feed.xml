@@ -1,16 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title>Feed</title>
-    <description>Sample feed about AlphaEvolve</description>
+    <title>AI and Tech Feed</title>
+    <description>Curated articles about artificial intelligence, technology, and software development, filtered by relevance and technical value</description>
     <link>https://github.com/BenjaminNowak/feed</link>
-    <lastBuildDate>Mon, 01 Jan 2024 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 14 Jun 2025 21:03:14 +0000</lastBuildDate>
     <item>
       <title>AlphaEvolve - a Gemini-powered coding agent</title>
       <description>DeepMind's AlphaEvolve project explores algorithm design with Gemini. PDF: https://storage.googleapis.com/deepmind-media/DeepMind.com/Blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/AlphaEvolve.pdf</description>
       <link>https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/</link>
       <pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate>
       <guid>alphaevolve</guid>
+    </item>
+    <item>
+      <title>Rocky and Alma Linux Still Going Strong. RHEL Adds an AI Assistant</title>
+      <description>Rocky Linux 10 "Red Quartz" has reached general availability, notes a new article in The Register — surveying the differences between "RHELatives" — the major alternatives to Red Hat Enterprise Linux: The Rocky 10 release notes describe what's new, such as support for RISC-V computers. Balancing that, this version only supports the Raspberry Pi 4 and 5 series; it drops Rocky 9.x's support for the older Pi 3 and Pi Zero models... RHEL 10 itself, and Rocky with it, now require x86-64-v3, meaning Intel "Haswell" generation kit from about 2013 onward. Uniquely among the RHELatives, AlmaLinux offers a separate build of version 10 for x86-64-v2 as well, meaning Intel "Nehalem" and later — chips from roughly 2008 onward. AlmaLinux has a history of still supporting hardware that's been dropped from RHEL and Rocky, which it's been doing since AlmaLinux 9.4. Now that includes CPUs. In comparison, the system requirements for Rocky Linux 10 are the same as for RHEL 10. The release notes say.... "The most significant change in Rocky Linux 10 is the removal of support for x86-64-v2 architectures. AMD and Intel 64-bit architectures for x86-64-v3 are now required." A significant element of the advertising around RHEL 10 involves how it has an AI assistant. This is called Red Hat Enterprise Linux Lightspeed, and you can use it right from a shell prompt, as the documentation describes... It's much easier than searching man pages, especially if you don't know what to look for... [N]either AlmaLinux 10 nor Rocky Linux 10 includes the option of a helper bot. No big surprise there... [Rocky Linux] is sticking closest to upstream, thanks to a clever loophole to obtain source RPMs. Its hardware requirements also closely parallel RHEL 10, and CIQ is working on certifications, compliance, and special editions. Meanwhile, AlmaLinux is maintaining support for older hardware and CPUs, which will widen its appeal, and working with partners to ensure reboot-free updates and patching, rather than CIQ's keep-it-in-house approach. All are valid, and all three still look and work almost identically... except for the LLM bot assistant.</description>
+      <link>https://linux.slashdot.org/story/25/06/14/1947215/rocky-and-alma-linux-still-going-strong-rhel-adds-an-ai-assistant</link>
+      <pubDate>Sat, 14 Jun 2025 19:49:00 +0000</pubDate>
+      <guid>7kZ9jBYy0jNWfThTWbMvXoOEh6EzrtgZCDjMlaPKIXQ=_19770028ed9:32efb51:c6e49d22</guid>
     </item>
   </channel>
 </rss>

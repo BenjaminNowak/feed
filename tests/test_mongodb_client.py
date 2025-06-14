@@ -152,8 +152,12 @@ def test_get_filtered_items(mock_mongodb_client):
     assert len(items) == 2
     mock_feed_items.find.assert_called_with(
         {
-            "processing_status": "processed",
+            "processing_status": {"$in": ["processed", "filtered_out"]},
             "llm_analysis.relevance_score": {"$gte": 0.7},
+            "$or": [
+                {"published_to_feed": {"$exists": False}},
+                {"published_to_feed": False},
+            ],
         },
         limit=2,
     )

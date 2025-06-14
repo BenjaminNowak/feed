@@ -164,15 +164,17 @@ class LLMFilter:
             else:
                 raise ValueError(f"No content found in Ollama response: {response}")
 
-            # Clean the content - remove any markdown code block markers
+            # Clean the content - remove any markdown code block markers and thinking process
             content = content.strip()
-            if content.startswith("```json"):
-                content = content[7:]
-            if content.startswith("```"):
-                content = content[3:]
-            if content.endswith("```"):
-                content = content[:-3]
-            content = content.strip()
+
+            # Try to find JSON content
+            json_start = content.rfind("{")
+            json_end = content.rfind("}") + 1
+            if json_start >= 0 and json_end > json_start:
+                content = content[json_start:json_end]
+
+            # Remove any markdown markers
+            content = content.replace("```json", "").replace("```", "").strip()
 
             try:
                 result = json.loads(content)

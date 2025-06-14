@@ -91,23 +91,96 @@ class FeedlyFetcher:
         if self.demo_mode:
             return self._get_demo_data(stream_id, count)
 
-        # Handle different stream ID patterns
-        if (
-            "category/global.all" in stream_id
-            or stream_id == "user/-/category/global.all"
-        ):
-            try:
+        try:
+            # Extract category name from stream ID
+            if "category/" in stream_id:
+                category_name = stream_id.split("category/", 1)[1].strip()
+                print(f"Looking for category: {category_name}")
+
+                # For global.all, use first available category
+                if category_name == "global.all":
+                    items = self._get_category_stream(count)
+                    return {"id": stream_id, "items": items}
+
+                # Get the specific category
+                category = self.session.user.user_categories.get(category_name)
+                if not category:
+                    raise ValueError(f"Category not found: {category_name}")
+
+                # Get stream contents
+                stream = category.stream_contents()
+                items = self._process_stream_entries(stream, count)
+                return {"id": stream_id, "items": items}
+            else:
+                # For non-category streams, use default behavior
                 items = self._get_category_stream(count)
                 return {"id": stream_id, "items": items}
-            except Exception as err:
-                # If API call fails, raise the exception
-                msg = f"Feedly API call failed: {err}"
-                raise RuntimeError(msg) from err
-        else:
-            # For other stream IDs, try to parse and use the API
-            # This is a simplified implementation
-            msg = f"Stream ID {stream_id} not yet supported with official client"
-            raise NotImplementedError(msg)
+
+        except Exception as err:
+            # If API call fails, raise the exception
+            msg = f"Feedly API call failed: {err}"
+            raise RuntimeError(msg) from err
+
+    def _find_entry_in_stream(self, stream, entry_id: str) -> dict | None:
+        """Search for an entry in a stream by its ID.
+
+        Args:
+            stream: The stream to search in
+            entry_id: The entry ID to look for
+
+        Returns:
+            dict | None: The entry data if found, None otherwise
+        """
+        for entry in stream:
+            if not entry:
+                continue
+
+            entry_data = entry.json if hasattr(entry, "json") else entry
+            if isinstance(entry_data, dict) and entry_data.get("id") == entry_id:
+                return entry_data
+        return None
+
+    def get_entry_by_url(self, entry_url: str) -> dict:
+        """Fetch a single entry by its Feedly URL.
+
+        Args:
+            entry_url: The Feedly URL in format: https://feedly.com/i/entry/<entry_id>
+
+        Returns:
+            dict: The entry data
+
+        Raises:
+            ValueError: If URL format is invalid or entry not found
+            RuntimeError: If the API call fails
+        """
+        if self.demo_mode:
+            return self._get_demo_data("demo_stream", 1)["items"][0]
+
+        # Extract entry ID from URL
+        if not entry_url.startswith("https://feedly.com/i/entry/"):
+            raise ValueError("Invalid Feedly entry URL format")
+        entry_id = entry_url.split("/entry/", 1)[1]
+
+        try:
+            # Get available categories
+            categories = list(self.session.user.user_categories.name2stream.keys())
+            if not categories:
+                raise ValueError("No categories found in Feedly account")
+
+            # Search each category's stream for the entry
+            for category_name in categories:
+                category = self.session.user.user_categories.get(category_name)
+                stream = category.stream_contents()
+
+                entry_data = self._find_entry_in_stream(stream, entry_id)
+                if entry_data:
+                    return entry_data
+
+            raise ValueError(f"Entry not found: {entry_id}")
+
+        except Exception as err:
+            msg = f"Failed to fetch entry {entry_id}: {err}"
+            raise RuntimeError(msg) from err
 
     def _get_demo_data(self, stream_id: str, count: int) -> dict:
         """Return sample data for demo purposes."""

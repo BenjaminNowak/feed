@@ -63,3 +63,37 @@ class TestFeedlyFetcher(unittest.TestCase):
             FeedlyFetcher(demo_mode=False)
 
         self.assertIn("FEEDLY_TOKEN", str(context.exception))
+
+    def test_get_entry_by_url(self):
+        """Test fetching an individual entry by URL."""
+        # Create mock objects
+        mock_session = MagicMock()
+        mock_user = MagicMock()
+        mock_categories = MagicMock()
+
+        # Setup the mock chain
+        mock_session.user = mock_user
+        mock_user.user_categories = mock_categories
+        mock_categories.name2stream = {"Culture": None}
+
+        # Setup mock category and stream
+        mock_category = MagicMock()
+        mock_entry = {
+            "id": "test_entry_id",
+            "title": "Test Entry",
+            "content": {"content": "Test content"},
+        }
+        mock_category.stream_contents.return_value = [mock_entry]
+        mock_categories.get.return_value = mock_category
+
+        # Create fetcher and inject our mock session
+        fetcher = FeedlyFetcher(token="test-token", user_id="test-user")
+        fetcher.session = mock_session
+
+        # Test with entry URL
+        entry_url = "https://feedly.com/i/entry/test_entry_id"
+        result = fetcher.get_entry_by_url(entry_url)
+
+        # Verify the category was accessed and entry was returned
+        mock_categories.get.assert_called_once_with("Culture")
+        self.assertEqual(result, mock_entry)

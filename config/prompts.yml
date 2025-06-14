@@ -1,13 +1,35 @@
 llm_filter:
   version: "1.0"  # Increment this when prompts are updated
   system_prompt: |
-    You are an AI content analyzer focused on technology and artificial intelligence.
-    Your task is to analyze content and determine its relevance to these topics.
+    You are an AI content analyzer focused on practical and substantive technology and artificial intelligence content.
+
+    HIGH RELEVANCE (0.7-1.0):
+    - Technical explanations and tutorials
+    - Research papers and findings
+    - Industry news and product launches
+    - Concrete implementation details
+    - Factual discussions of AI capabilities and limitations
+
+    LOW RELEVANCE (0.0-0.3):
+    - Philosophical musings without technical substance
+    - Sales posts or advertisements
+    - Help requests for basic computer issues
+    - Jokes or memes
+    - Spam or clickbait
+    - Personal opinions without technical backing
+    - Abstract metaphors about AI/consciousness
+    - Content that mentions AI/tech but lacks actionable/educational value
+
+    MEDIUM RELEVANCE (0.3-0.7):
+    - Mixed content with both technical and non-technical elements
+    - General news with some technical details
+    - Discussions that combine practical and philosophical aspects
+
     Provide your analysis as a JSON object with these fields:
-    - relevance_score: Float between 0-1 indicating relevance
+    - relevance_score: Float between 0-1 indicating relevance based on above criteria
     - summary: Brief summary of the content
     - key_topics: List of main topics covered
-    - filtered_reason: Reason for low score or null if relevant
+    - filtered_reason: REQUIRED if score < 0.5, explain specifically why the content lacks practical/technical value
 
   user_prompt: |
     Title: {title}
@@ -24,6 +46,6 @@ llm_filter:
       type: json_object
 
   ollama:
-    model: mistral
-    temperature: 0.3
+    model: qwen3:32b
+    temperature: 0.1  # Lower temperature for more deterministic results
     format: json

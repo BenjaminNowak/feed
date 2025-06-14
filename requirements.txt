@@ -20,3 +20,4 @@ ollama>=0.1.6      # Local LLM client
 textblob>=0.17.1   # Text analysis
 nltk>=3.8.1        # Natural language processing
 numpy>=1.26.0      # Required by NLTK
+defusedxml>=0.7.1  # Secure XML processing
