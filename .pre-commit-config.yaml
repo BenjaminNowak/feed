@@ -1,0 +1,60 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        name: Format Python code
+        language_version: python3
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: Sort Python imports
+        args: ["--profile", "black"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.275
+    hooks:
+      - id: ruff
+        name: Run Ruff linter
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        name: Run Bandit security checks
+        args: ["-c", "pyproject.toml"]
+
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: Run unit tests
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.1
+    hooks:
+      - id: gitleaks
+        name: Detect hardcoded secrets
+        description: Scan for hardcoded secrets and credentials
+        entry: gitleaks protect --verbose --redact --staged
+        language: golang
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: detect-private-key
+        name: Detect private keys
+
+  - repo: local
+    hooks:
+      - id: custom-secret-scanner
+        name: Custom secret pattern scanner
+        entry: scripts/scan_secrets.sh
+        language: script
+        files: ''  # Scan all files

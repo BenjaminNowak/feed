@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  mongodb:
+    ports:
+      - "27017:27017"  # Expose MongoDB port for development
+    volumes:
+      - ./mongodb_init:/docker-entrypoint-initdb.d  # Mount initialization scripts
+    environment:
+      - MONGO_INITDB_DATABASE=feeddb  # Set initial database
+
+  feed_processor:
+    build:
+      target: development
+    volumes:
+      - ..:/app:rw  # Mount entire project for development
+      - ./mongodb_init:/mongodb_init:ro  # Share init scripts for reference
+    environment:
+      - DEBUG=1
+      - PYTHONUNBUFFERED=1
+      - MONGODB_DATABASE=feeddb
+    ports:
+      - "5000:5000"  # API port for development
+    command: ["tail", "-f", "/dev/null"]  # Keep container running for development
