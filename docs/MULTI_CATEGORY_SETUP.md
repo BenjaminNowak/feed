@@ -99,10 +99,10 @@ python feed_aggregator/etl/process_category.py ML
 ### Processing Multiple Categories
 
 ```bash
-# Process specific categories
+# Process specific categories (sequential)
 python scripts/process_categories_runner.py ML Tech Cyber
 
-# Process all configured categories
+# Process all configured categories (round-robin)
 python scripts/process_categories_runner.py --all
 ```
 
@@ -111,6 +111,27 @@ python scripts/process_categories_runner.py --all
 ```bash
 python scripts/process_categories_runner.py --list
 ```
+
+## Round-Robin Processing
+
+When processing all categories with `--all`, the system uses an efficient round-robin approach:
+
+### Phase 1: Fetch Articles
+- Fetches articles from all categories simultaneously
+- Stores them in MongoDB with `pending` status
+- Each article is tagged with its source category
+
+### Phase 2: Round-Robin Processing
+- Processes articles from all categories in small batches (5 articles per category per round)
+- Ensures fair processing across all categories
+- Prevents one slow category from blocking others
+- Continues until all pending articles are processed
+
+### Benefits
+- **Faster overall processing**: No waiting for one category to complete before starting another
+- **Fair resource allocation**: Each category gets equal processing time
+- **Better parallelization**: Can process multiple categories simultaneously
+- **Resilient**: If one category fails, others continue processing
 
 ## Backward Compatibility
 

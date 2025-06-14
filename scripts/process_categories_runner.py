@@ -38,35 +38,66 @@ def process_single_category(category_key: str) -> bool:
 
 
 def process_all_categories() -> None:
-    """Process all configured categories."""
+    """Process all configured categories using round-robin approach."""
     try:
+        from feed_aggregator.etl.process_category import (
+            fetch_category_articles,
+            process_pending_articles_round_robin,
+        )
+
         category_config = CategoryConfig()
         all_categories = category_config.get_all_categories()
 
         print(f"Processing all categories: {all_categories}")
+        print(
+            "Using round-robin approach: fetch all articles first, then process in batches"
+        )
 
-        success_count = 0
-        failure_count = 0
+        # Phase 1: Fetch articles from all categories
+        print(f"\n{'='*60}")
+        print("PHASE 1: FETCHING ARTICLES FROM ALL CATEGORIES")
+        print(f"{'='*60}")
+
+        total_fetched = 0
+        fetch_failures = 0
 
         for category in all_categories:
-            if process_single_category(category):
-                success_count += 1
-            else:
-                failure_count += 1
+            try:
+                fetched_count = fetch_category_articles(category, category_config)
+                total_fetched += fetched_count
+                print(f"✓ {category}: {fetched_count} new articles")
+            except Exception as e:
+                print(f"✗ {category}: Failed to fetch articles - {e}")
+                fetch_failures += 1
+
+        print("\nFetch Summary:")
+        print(f"Total new articles fetched: {total_fetched}")
+        print(f"Categories with fetch failures: {fetch_failures}")
+
+        # Phase 2: Process pending articles in round-robin fashion
+        print(f"\n{'='*60}")
+        print("PHASE 2: PROCESSING ARTICLES (ROUND-ROBIN)")
+        print(f"{'='*60}")
+
+        if total_fetched > 0:
+            process_pending_articles_round_robin(all_categories, category_config)
+        else:
+            print("No new articles to process.")
 
         print(f"\n{'='*60}")
         print("FINAL SUMMARY")
         print(f"{'='*60}")
         print(f"Total categories: {len(all_categories)}")
-        print(f"Successful: {success_count}")
-        print(f"Failed: {failure_count}")
+        print(f"Articles fetched: {total_fetched}")
+        print(f"Fetch failures: {fetch_failures}")
         print(f"{'='*60}")
 
-        if failure_count > 0:
+        if fetch_failures == len(all_categories):
+            print("All categories failed to fetch articles!")
             sys.exit(1)
 
     except Exception as e:
-        print(f"Error loading category configuration: {e}")
+        print(f"Error in multi-category processing: {e}")
         sys.exit(1)
 
 

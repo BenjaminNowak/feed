@@ -149,6 +149,229 @@ def _clean_item_data(item):
         ]
 
 
+def fetch_category_articles(category_key: str, category_config: CategoryConfig) -> int:
+    """Fetch articles from a category and store them in MongoDB.
+
+    Args:
+        category_key: Category to fetch from
+        category_config: Category configuration instance
+
+    Returns:
+        Number of new articles fetched
+    """
+    try:
+        print(f"\n{'='*50}")
+        print(f"FETCHING ARTICLES FROM: {category_key}")
+        print(f"{'='*50}")
+
+        # Initialize fetcher and mongo client
+        token = os.environ.get("FEEDLY_TOKEN")
+        user_id = os.environ.get("FEEDLY_USER")
+
+        if not token:
+            raise ValueError("FEEDLY_TOKEN environment variable not set")
+
+        fetcher = FeedlyFetcher(token=token, user_id=user_id)
+        mongo_client = MongoDBClient()
+
+        # Get category data
+        data = _get_category_data(fetcher, user_id, category_key, category_config)
+
+        new_articles = 0
+        for item in data["items"]:
+            # Check if item already exists
+            existing_item = mongo_client.feed_items.find_one({"id": item["id"]})
+            if existing_item:
+                continue
+
+            # Add category and processing status
+            item["category"] = category_key
+            item["processing_status"] = "pending"
+
+            # Clean up and store item
+            _clean_item_data(item)
+            mongo_client.store_feed_items([item])
+            new_articles += 1
+
+        print(f"Fetched {new_articles} new articles from {category_key}")
+        mongo_client.close()
+        return new_articles
+
+    except Exception as e:
+        print(f"Error fetching from {category_key}: {e}")
+        return 0
+
+
+def _initialize_category_components(categories: list, category_config: CategoryConfig):
+    """Initialize components for each category."""
+    category_components = {}
+    category_stats = {}
+
+    for category_key in categories:
+        try:
+            _, content_analyzer, llm_filter, mongo_client = _initialize_components(
+                category_key, category_config
+            )
+            category_components[category_key] = {
+                "content_analyzer": content_analyzer,
+                "llm_filter": llm_filter,
+                "mongo_client": mongo_client,
+                "quality_threshold": category_config.get_quality_threshold(
+                    category_key
+                ),
+                "high_quality_target": category_config.get_high_quality_target(
+                    category_key
+                ),
+                "high_quality_count": 0,
+            }
+            category_stats[category_key] = {
+                "processed": 0,
+                "high_quality": 0,
+                "filtered": 0,
+            }
+        except Exception as e:
+            print(f"Error initializing components for {category_key}: {e}")
+            continue
+
+    return category_components, category_stats
+
+
+def _process_category_batch(
+    category_key: str, components: dict, category_stats: dict, batch_size: int
+) -> int:
+    """Process a batch of articles for a single category."""
+    mongo_client = components["mongo_client"]
+
+    # Get pending articles for this category
+    pending_articles = list(
+        mongo_client.feed_items.find(
+            {"category": category_key, "processing_status": "pending"}
+        ).limit(batch_size)
+    )
+
+    if not pending_articles:
+        return 0
+
+    print(f"\nProcessing {len(pending_articles)} articles from {category_key}")
+    articles_processed = 0
+
+    for item in pending_articles:
+        try:
+            quality_result = _process_single_item(
+                item,
+                components["content_analyzer"],
+                components["llm_filter"],
+                mongo_client,
+                components["quality_threshold"],
+            )
+
+            if quality_result is None:
+                continue
+
+            # Update item in database
+            mongo_client.feed_items.update_one(
+                {"id": item["id"]},
+                {
+                    "$set": {
+                        "content_analysis": item.get("content_analysis"),
+                        "llm_analysis": item.get("llm_analysis"),
+                        "processing_status": item.get("processing_status"),
+                    }
+                },
+            )
+
+            # Update stats
+            category_stats[category_key]["processed"] += 1
+            if quality_result == 1:
+                category_stats[category_key]["high_quality"] += 1
+                components["high_quality_count"] += 1
+
+                # Check if we should update feed
+                target = components["high_quality_target"]
+                if components["high_quality_count"] >= target:
+                    print(
+                        f"\n{category_key}: Found {target} high quality articles - "
+                        "updating feed..."
+                    )
+                    update_feed.main()
+                    git_commit_and_push()
+                    components["high_quality_count"] = 0
+            else:
+                category_stats[category_key]["filtered"] += 1
+
+            articles_processed += 1
+
+        except Exception as e:
+            print(f"Error processing article from {category_key}: {e}")
+            continue
+
+    return articles_processed
+
+
+def _print_processing_statistics(category_stats: dict, category_components: dict):
+    """Print final processing statistics."""
+    print(f"\n{'='*60}")
+    print("FINAL PROCESSING STATISTICS")
+    print(f"{'='*60}")
+
+    for category_key, stats in category_stats.items():
+        if category_key in category_components:
+            print(f"{category_key}:")
+            print(f"  Processed: {stats['processed']}")
+            print(f"  High Quality: {stats['high_quality']}")
+            print(f"  Filtered: {stats['filtered']}")
+
+
+def process_pending_articles_round_robin(
+    categories: list, category_config: CategoryConfig
+):
+    """Process pending articles from all categories in round-robin fashion.
+
+    Args:
+        categories: List of category keys to process
+        category_config: Category configuration instance
+    """
+    print(f"\n{'='*60}")
+    print("PROCESSING PENDING ARTICLES (ROUND-ROBIN)")
+    print(f"{'='*60}")
+
+    # Initialize components for each category
+    category_components, category_stats = _initialize_category_components(
+        categories, category_config
+    )
+
+    # Round-robin processing
+    batch_size = 5  # Process 5 articles per category per round
+    total_processed = 0
+
+    while True:
+        articles_processed_this_round = 0
+
+        for category_key in categories:
+            if category_key not in category_components:
+                continue
+
+            components = category_components[category_key]
+            processed = _process_category_batch(
+                category_key, components, category_stats, batch_size
+            )
+            articles_processed_this_round += processed
+            total_processed += processed
+
+        # If no articles were processed this round, we're done
+        if articles_processed_this_round == 0:
+            break
+
+        print(f"\nRound completed. Total processed: {total_processed}")
+
+    # Print final statistics and close connections
+    _print_processing_statistics(category_stats, category_components)
+
+    # Close all connections
+    for components in category_components.values():
+        components["mongo_client"].close()
+
+
 def _print_final_stats(mongo_client):
     """Print final MongoDB statistics."""
     metrics = {
