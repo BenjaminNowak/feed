@@ -1,8 +1,9 @@
 import os
 import re
+import xml.etree.ElementTree as ET  # nosec B405 - Used only for creating elements, not parsing untrusted data
 from datetime import datetime, timezone
 
-from defusedxml import ElementTree as ET
+from defusedxml import ElementTree as DefusedET
 from defusedxml.minidom import parseString
 
 from feed_aggregator.storage.mongodb_client import MongoDBClient
@@ -19,7 +20,7 @@ def load_feed():
     feed_link = "https://github.com/BenjaminNowak/feed"
 
     if os.path.exists("feed.xml"):
-        tree = ET.parse("feed.xml")
+        tree = DefusedET.parse("feed.xml")
         root = tree.getroot()
         channel = root.find("channel")
         # Update existing channel elements
@@ -135,8 +136,9 @@ def main():
 
         # Clean up all items in the feed
         for item in channel.findall("item"):
-            desc = item.find("description").text
-            if desc:
+            desc_elem = item.find("description")
+            if desc_elem is not None and desc_elem.text:
+                desc = desc_elem.text
                 # First extract the main content before any social sharing elements
                 main_content = desc.split("<p><div>", 1)[0].strip()
 
@@ -161,9 +163,9 @@ def main():
                 item.find("description").text = main_content.strip()
 
             # Clean up link URLs
-            link = item.find("link").text
-            if link and "?" in link:
-                item.find("link").text = link.split("?")[0]
+            link_elem = item.find("link")
+            if link_elem is not None and link_elem.text and "?" in link_elem.text:
+                link_elem.text = link_elem.text.split("?")[0]
 
         # Save the updated feed
         ET.ElementTree(root)
