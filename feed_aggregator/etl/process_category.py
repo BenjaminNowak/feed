@@ -394,6 +394,114 @@ def _print_final_stats(mongo_client):
     print(f"Filtered items: {metrics['filtered_items']}")
 
 
+def _process_pending_articles_step(
+    category_key: str, category_config: CategoryConfig, mongo_client
+) -> None:
+    """Step 2: Process all pending articles from MongoDB."""
+    print(f"\n{'='*50}")
+    print("STEP 2: PROCESSING PENDING ARTICLES FROM MONGODB")
+    print(f"{'='*50}")
+
+    # Get all pending articles for this category from MongoDB
+    pending_articles = list(
+        mongo_client.feed_items.find(
+            {"category": category_key, "processing_status": "pending"}
+        ).sort(
+            "published", 1
+        )  # Process oldest first
+    )
+
+    print(f"Found {len(pending_articles)} pending articles to process")
+
+    if len(pending_articles) == 0:
+        print("No pending articles to process")
+        return
+
+    # Initialize components for processing
+    _, content_analyzer, llm_filter, _ = _initialize_components(
+        category_key, category_config
+    )
+
+    quality_threshold = category_config.get_quality_threshold(category_key)
+    high_quality_target = category_config.get_high_quality_target(category_key)
+    high_quality_count = 0
+
+    # Process each pending article
+    for i, item in enumerate(pending_articles, 1):
+        print(f"\nProcessing item {i}/{len(pending_articles)}")
+        print(f"Title: {item.get('title', 'No title')}")
+
+        try:
+            quality_result = _process_single_item(
+                item, content_analyzer, llm_filter, mongo_client, quality_threshold
+            )
+
+            if quality_result is None:  # Item was skipped (already analyzed)
+                continue
+
+            # Update the item in MongoDB with analysis results
+            mongo_client.feed_items.update_one(
+                {"id": item["id"]},
+                {
+                    "$set": {
+                        "content_analysis": item.get("content_analysis"),
+                        "llm_analysis": item.get("llm_analysis"),
+                        "processing_status": item.get("processing_status"),
+                    }
+                },
+            )
+
+            if quality_result == 1:  # High quality
+                high_quality_count += 1
+                print(f"High quality article found! (Total: {high_quality_count})")
+
+                # If we've found enough high quality articles, update feed
+                if high_quality_count == high_quality_target:
+                    print(
+                        f"\nFound {high_quality_target} high quality articles - updating feed..."
+                    )
+                    update_feed.main()
+                    git_commit_and_push()
+                    high_quality_count = 0  # Reset counter
+
+        except Exception as e:
+            print(f"Error processing item: {e}")
+            continue
+
+
+def _publish_unpublished_articles_step(
+    category_key: str, category_config: CategoryConfig, mongo_client
+) -> None:
+    """Step 3: Always check for and publish any high-quality articles that haven't been published yet."""
+    print(f"\n{'='*50}")
+    print("STEP 3: PUBLISHING PENDING HIGH-QUALITY ARTICLES")
+    print(f"{'='*50}")
+
+    # Check if there are any high-quality processed articles that haven't been published
+    quality_threshold = category_config.get_quality_threshold(category_key)
+    unpublished_articles = list(
+        mongo_client.feed_items.find(
+            {
+                "category": category_key,
+                "processing_status": "processed",
+                "llm_analysis.relevance_score": {"$gte": quality_threshold},
+                "$or": [
+                    {"published_to_feed": {"$exists": False}},
+                    {"published_to_feed": False},
+                ],
+            }
+        )
+    )
+
+    if unpublished_articles:
+        print(f"Found {len(unpublished_articles)} unpublished high-quality articles")
+        print("Updating feed with pending articles...")
+        update_feed.main()
+        git_commit_and_push()
+    else:
+        print("No unpublished high-quality articles found")
+
+
 def main(category_key: Optional[str] = None):
     """Main processing function.
 
@@ -428,75 +536,14 @@ def main(category_key: Optional[str] = None):
         new_articles_count = fetch_category_articles(category_key, category_config)
         print(f"Fetched {new_articles_count} new articles from Feedly")
 
-        # Step 2: Process all pending articles from MongoDB (both new and existing)
-        print(f"\n{'='*50}")
-        print("STEP 2: PROCESSING PENDING ARTICLES FROM MONGODB")
-        print(f"{'='*50}")
+        # Initialize MongoDB client for steps 2 and 3
+        _, _, _, mongo_client = _initialize_components(category_key, category_config)
 
-        # Initialize components for processing
-        _, content_analyzer, llm_filter, mongo_client = _initialize_components(
-            category_key, category_config
-        )
+        # Step 2: Process all pending articles from MongoDB
+        _process_pending_articles_step(category_key, category_config, mongo_client)
 
-        # Get all pending articles for this category from MongoDB
-        pending_articles = list(
-            mongo_client.feed_items.find(
-                {"category": category_key, "processing_status": "pending"}
-            ).sort(
-                "published", 1
-            )  # Process oldest first
-        )
-
-        print(f"Found {len(pending_articles)} pending articles to process")
-
-        if len(pending_articles) == 0:
-            print("No pending articles to process")
-            _print_final_stats(mongo_client)
-            return
-
-        high_quality_count = 0
-
-        # Process each pending article
-        for i, item in enumerate(pending_articles, 1):
-            print(f"\nProcessing item {i}/{len(pending_articles)}")
-            print(f"Title: {item.get('title', 'No title')}")
-
-            try:
-                quality_result = _process_single_item(
-                    item, content_analyzer, llm_filter, mongo_client, quality_threshold
-                )
-
-                if quality_result is None:  # Item was skipped (already analyzed)
-                    continue
-
-                # Update the item in MongoDB with analysis results
-                mongo_client.feed_items.update_one(
-                    {"id": item["id"]},
-                    {
-                        "$set": {
-                            "content_analysis": item.get("content_analysis"),
-                            "llm_analysis": item.get("llm_analysis"),
-                            "processing_status": item.get("processing_status"),
-                        }
-                    },
-                )
-
-                if quality_result == 1:  # High quality
-                    high_quality_count += 1
-                    print(f"High quality article found! (Total: {high_quality_count})")
-
-                    # If we've found enough high quality articles, update feed
-                    if high_quality_count == high_quality_target:
-                        print(
-                            f"\nFound {high_quality_target} high quality articles - updating feed..."
-                        )
-                        update_feed.main()
-                        git_commit_and_push()
-                        high_quality_count = 0  # Reset counter
-
-            except Exception as e:
-                print(f"Error processing item: {e}")
-                continue
+        # Step 3: Publish any unpublished high-quality articles
+        _publish_unpublished_articles_step(category_key, category_config, mongo_client)
 
         # Print final stats
         _print_final_stats(mongo_client)

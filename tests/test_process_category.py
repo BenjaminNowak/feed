@@ -169,10 +169,14 @@ def test_main_high_quality_articles(
         {**item, "category": "ML", "processing_status": "pending"} for item in items
     ]
 
-    # Mock the MongoDB find method to return pending items
-    mock_dependencies[
-        "mongo"
-    ].feed_items.find.return_value.sort.return_value = pending_items
+    # Mock the MongoDB find method to return pending items for Step 2
+    # and empty list for Step 3 (no unpublished articles)
+    mock_dependencies["mongo"].feed_items.find.side_effect = [
+        MagicMock(
+            sort=MagicMock(return_value=pending_items)
+        ),  # Step 2: pending articles
+        [],  # Step 3: no unpublished articles
+    ]
 
     # Make first 12 items high quality (>= 0.6 relevance)
     mock_dependencies["llm"].analyze_item.side_effect = [
@@ -214,10 +218,14 @@ def test_main_no_high_quality_articles(
         {**item, "category": "ML", "processing_status": "pending"} for item in items
     ]
 
-    # Mock the MongoDB find method to return pending items
-    mock_dependencies[
-        "mongo"
-    ].feed_items.find.return_value.sort.return_value = pending_items
+    # Mock the MongoDB find method to return pending items for Step 2
+    # and empty list for Step 3 (no unpublished articles)
+    mock_dependencies["mongo"].feed_items.find.side_effect = [
+        MagicMock(
+            sort=MagicMock(return_value=pending_items)
+        ),  # Step 2: pending articles
+        [],  # Step 3: no unpublished articles
+    ]
 
     # Make all items low quality (< 0.6 relevance)
     mock_dependencies["llm"].analyze_item.return_value = {
@@ -236,3 +244,57 @@ def test_main_no_high_quality_articles(
 
     # Verify items were stored during fetch phase (called once for each item)
     assert mock_dependencies["mongo"].store_feed_items.call_count == 5
+
+
+def test_main_unpublished_articles_trigger_feed_update(
+    mock_dependencies,
+    mock_update_feed,
+    mock_git_commit,
+    mock_feedly_session,
+    setup_env_vars,
+    test_items,
+):
+    """Test that unpublished high-quality articles trigger feed update in Step 3."""
+    # Setup test data - only 3 items, not enough to trigger threshold during processing
+    items = test_items(3)
+    mock_dependencies["fetcher"].get_stream_contents.return_value = {"items": items}
+
+    # Mock MongoDB behavior for the new flow:
+    pending_items = [
+        {**item, "category": "ML", "processing_status": "pending"} for item in items
+    ]
+
+    # Mock unpublished high-quality articles for Step 3
+    unpublished_articles = [
+        {
+            "id": "unpublished_1",
+            "title": "Unpublished Article 1",
+            "category": "ML",
+            "processing_status": "processed",
+            "llm_analysis": {"relevance_score": 0.8},
+            "published_to_feed": False,
+        }
+    ]
+
+    # Mock the MongoDB find method calls
+    mock_dependencies["mongo"].feed_items.find.side_effect = [
+        MagicMock(
+            sort=MagicMock(return_value=pending_items)
+        ),  # Step 2: pending articles
+        unpublished_articles,  # Step 3: unpublished high-quality articles
+    ]
+
+    # Make all new items high quality but below threshold (3 < 10)
+    mock_dependencies["llm"].analyze_item.return_value = {"relevance_score": 0.8}
+
+    # Run main function
+    main()
+
+    # Should have called update_feed once in Step 3 for unpublished articles
+    mock_update_feed.assert_called_once()
+
+    # Should have called git_commit_and_push once after update_feed
+    mock_git_commit.assert_called_once()
+
+    # Verify items were stored during fetch phase
+    assert mock_dependencies["mongo"].store_feed_items.call_count == 3
