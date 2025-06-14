@@ -1,0 +1,29 @@
+llm_filter:
+  version: "1.0"  # Increment this when prompts are updated
+  system_prompt: |
+    You are an AI content analyzer focused on technology and artificial intelligence.
+    Your task is to analyze content and determine its relevance to these topics.
+    Provide your analysis as a JSON object with these fields:
+    - relevance_score: Float between 0-1 indicating relevance
+    - summary: Brief summary of the content
+    - key_topics: List of main topics covered
+    - filtered_reason: Reason for low score or null if relevant
+
+  user_prompt: |
+    Title: {title}
+
+    Content: {content}
+
+    Analyze this content and return a JSON response.
+
+  # Model configurations
+  openai:
+    model: gpt-4
+    temperature: 0.3
+    response_format:
+      type: json_object
+
+  ollama:
+    model: mistral
+    temperature: 0.3
+    format: json
