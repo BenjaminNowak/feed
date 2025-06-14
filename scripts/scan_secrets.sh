@@ -25,6 +25,20 @@ PATTERNS=(
     
     # Environment variables that might contain secrets
     '(API_KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|PWD|CREDENTIALS)(["\s]*=[\s"]*|[:]\s*)[^\s"]{8,}'
+    
+    # Database user creation patterns (MongoDB, SQL, etc.)
+    'pwd.*:.*"[^"]{6,}"'  # pwd: "password" patterns
+    'password.*:.*"[^"]{6,}"'  # password: "password" patterns
+    'user.*:.*"[a-zA-Z0-9_-]{3,}"'  # user: "username" patterns
+    'createUser.*pwd.*:.*"[^"]{6,}"'  # MongoDB createUser with hardcoded pwd
+    
+    # Hardcoded credentials in various formats
+    '"[a-zA-Z0-9_-]{3,}".*:.*"[^"]{8,}"'  # "user": "password" patterns
+    '(username|userid|user_id).*=.*"[a-zA-Z0-9_-]{3,}"'  # username="value"
+    '(password|passwd|pwd).*=.*"[^"]{6,}"'  # password="value"
+    
+    # Specific patterns for common hardcoded values
+    '"[a-zA-Z0-9_-]{3,}".*:.*"[^"]*[><!@#$%^&*()_+{}|:<>?~`\[\]\\;,./-][^"]*"'  # Passwords with special chars
 )
 
 # Colors for output
@@ -80,21 +94,26 @@ check_file() {
     
     for pattern in "${PATTERNS[@]}"; do
         # Search for pattern in file
-        while IFS= read -r line || [ -n "$line" ]; do
-            if echo "$line" | grep -q -Ein -e "$pattern"; then
-                # Check if line should be ignored
-                if ! should_ignore "$line"; then
-                    if [ "$found_secrets" -eq 0 ]; then
-                        echo -e "${RED}WARNING: Potential secret found in $file${NC}"
+        matches=$(grep -Ein -e "$pattern" "$file" 2>/dev/null || true)
+        if [ ! -z "$matches" ]; then
+            while IFS= read -r match_line; do
+                if [ ! -z "$match_line" ]; then
+                    # Extract just the content part after line number
+                    line_content=$(echo "$match_line" | sed 's/^[0-9]*://')
+                    # Check if line should be ignored
+                    if ! should_ignore "$line_content"; then
+                        if [ "$found_secrets" -eq 0 ]; then
+                            echo -e "${RED}WARNING: Potential secret found in $file${NC}"
+                        fi
+                        echo -e "${YELLOW}Found potential secret in line:${NC}"
+                        echo "$match_line"
+                        echo -e "${YELLOW}(Matched pattern: $pattern)${NC}"
+                        echo
+                        found_secrets=1
                     fi
-                    echo -e "${YELLOW}Found potential secret in line:${NC}"
-                    echo "$line"
-                    echo -e "${YELLOW}(Matched pattern: $pattern)${NC}"
-                    echo
-                    found_secrets=1
                 fi
-            fi
-        done < <(grep -Ein -e "$pattern" "$file" 2>/dev/null || true)
+            done <<< "$matches"
+        fi
     done
     
     return $found_secrets

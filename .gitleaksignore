@@ -1,0 +1,2 @@
+# Ignore regex patterns in the secret scanner script itself
+scripts/scan_secrets.sh:hashicorp-tf-password:31
