@@ -1,7 +1,9 @@
 import os
 import subprocess  # nosec B404 - Used for controlled git operations
 from datetime import datetime
+from typing import Optional
 
+from feed_aggregator.config.category_config import CategoryConfig
 from feed_aggregator.etl import update_feed
 from feed_aggregator.fetcher import FeedlyFetcher
 from feed_aggregator.processing.content_analyzer import ContentAnalyzer
@@ -27,8 +29,13 @@ def git_commit_and_push():
         print(f"Error during git operations: {e}")
 
 
-def _initialize_components():
-    """Initialize fetcher, analyzers, and database client."""
+def _initialize_components(category_key: str, category_config: CategoryConfig):
+    """Initialize fetcher, analyzers, and database client.
+
+    Args:
+        category_key: Category key (e.g., 'ML', 'Tech')
+        category_config: Category configuration instance
+    """
     token = os.environ.get("FEEDLY_TOKEN")
     user_id = os.environ.get("FEEDLY_USER")
 
@@ -37,31 +44,60 @@ def _initialize_components():
 
     fetcher = FeedlyFetcher(token=token, user_id=user_id)
     content_analyzer = ContentAnalyzer()
-    llm_filter = LLMFilter(provider="ollama")
+
+    # Get category-specific prompts path
+    prompts_path = category_config.get_prompts_path(category_key)
+    global_config = category_config.get_global_config()
+    provider = global_config.get("default_provider", "ollama")
+
+    llm_filter = LLMFilter(provider=provider, config_path=prompts_path)
     mongo_client = MongoDBClient()
 
     return fetcher, content_analyzer, llm_filter, mongo_client
 
 
-def _get_ml_category_data(fetcher, user_id):
-    """Get data from the ML category."""
+def _get_category_data(
+    fetcher, user_id, category_key: str, category_config: CategoryConfig
+):
+    """Get data from the specified category.
+
+    Args:
+        fetcher: FeedlyFetcher instance
+        user_id: Feedly user ID
+        category_key: Category key (e.g., 'ML', 'Tech')
+        category_config: Category configuration instance
+    """
     available_categories = list(fetcher.session.user.user_categories.name2stream.keys())
     print(f"Available categories: {available_categories}")
 
-    ml_category = "ML"
-    if ml_category not in available_categories:
-        raise ValueError("Machine Learning category not found")
+    feedly_category = category_config.get_feedly_category(category_key)
+    if feedly_category not in available_categories:
+        raise ValueError(f"Category '{feedly_category}' not found in Feedly")
 
-    print(f"\nFetching from category: {ml_category}")
+    print(f"\nFetching from category: {feedly_category}")
+
+    global_config = category_config.get_global_config()
+    fetch_count = global_config.get("default_fetch_count", 100)
+
     data = fetcher.get_stream_contents(
-        f"user/{user_id}/category/{ml_category}", count=100
+        f"user/{user_id}/category/{feedly_category}", count=fetch_count
     )
     print(f"\nFetched {len(data['items'])} items")
     return data
 
 
-def _process_single_item(item, content_analyzer, llm_filter, mongo_client):
-    """Process a single feed item."""
+def _process_single_item(
+    item, content_analyzer, llm_filter, mongo_client, quality_threshold: float
+):
+    """Process a single feed item.
+
+    Args:
+        item: Feed item to process
+        content_analyzer: Content analyzer instance
+        llm_filter: LLM filter instance
+        mongo_client: MongoDB client
+        quality_threshold: Quality threshold for the category
+    """
     # Check if item exists and has been analyzed
     existing_item = mongo_client.feed_items.find_one({"id": item["id"]})
     if existing_item and "llm_analysis" in existing_item:
@@ -89,14 +125,14 @@ def _process_single_item(item, content_analyzer, llm_filter, mongo_client):
 
     # Print analysis results
     relevance_score = llm_analysis["relevance_score"]
-    print(f"Relevance score: {relevance_score}")
+    print(f"Relevance score: {relevance_score} (threshold: {quality_threshold})")
 
     if llm_analysis.get("filtered_reason"):
         print(f"Filtered reason: {llm_analysis['filtered_reason']}")
         item["processing_status"] = "filtered_out"
         return 0  # Not high quality
 
-    if relevance_score >= 0.6:  # High quality threshold
+    if relevance_score >= quality_threshold:  # Use category-specific threshold
         print("High quality article found!")
         return 1  # High quality
 
@@ -135,17 +171,42 @@ def _print_final_stats(mongo_client):
     print(f"Filtered items: {metrics['filtered_items']}")
 
 
-def main():
-    """Main processing function."""
+def main(category_key: Optional[str] = None):
+    """Main processing function.
+
+    Args:
+        category_key: Category to process (e.g., 'ML', 'Tech').
+                     If None, defaults to 'ML' for backward compatibility.
+    """
+    if category_key is None:
+        category_key = "ML"  # Default for backward compatibility
+
     high_quality_count = 0
 
     try:
-        # Initialize components
-        fetcher, content_analyzer, llm_filter, mongo_client = _initialize_components()
+        # Load category configuration
+        category_config = CategoryConfig()
 
-        # Get ML category data
+        print(f"Processing category: {category_key}")
+        print(f"Available categories: {category_config.get_all_categories()}")
+
+        # Get category-specific settings
+        quality_threshold = category_config.get_quality_threshold(category_key)
+        high_quality_target = category_config.get_high_quality_target(category_key)
+        output_feed = category_config.get_output_feed(category_key)
+
+        print(f"Quality threshold: {quality_threshold}")
+        print(f"High quality target: {high_quality_target}")
+        print(f"Output feed: {output_feed}")
+
+        # Initialize components
+        fetcher, content_analyzer, llm_filter, mongo_client = _initialize_components(
+            category_key, category_config
+        )
+
+        # Get category data
         user_id = os.environ.get("FEEDLY_USER")
-        data = _get_ml_category_data(fetcher, user_id)
+        data = _get_category_data(fetcher, user_id, category_key, category_config)
 
         # Process each item
         for i, item in enumerate(data["items"], 1):
@@ -154,7 +215,7 @@ def main():
 
             try:
                 quality_result = _process_single_item(
-                    item, content_analyzer, llm_filter, mongo_client
+                    item, content_analyzer, llm_filter, mongo_client, quality_threshold
                 )
 
                 if quality_result is None:  # Item was skipped
@@ -164,9 +225,11 @@ def main():
                     high_quality_count += 1
                     print(f"High quality article found! (Total: {high_quality_count})")
 
-                    # If we've found 10 high quality articles, update feed
-                    if high_quality_count == 10:
-                        print("\nFound 10 high quality articles - updating feed...")
+                    # If we've found enough high quality articles, update feed
+                    if high_quality_count == high_quality_target:
+                        print(
+                            f"\nFound {high_quality_target} high quality articles - updating feed..."
+                        )
                         update_feed.main()
                         git_commit_and_push()
                         high_quality_count = 0  # Reset counter
@@ -190,4 +253,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    # Allow category to be passed as command line argument
+    category = sys.argv[1] if len(sys.argv) > 1 else None
+    main(category)

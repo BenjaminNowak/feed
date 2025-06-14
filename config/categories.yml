@@ -1,0 +1,52 @@
+# Categories configuration for feed processing
+categories:
+  ML:
+    name: "Machine Learning"
+    description: "Machine Learning and AI content"
+    feedly_category: "ML"
+    prompts_file: "ml.yml"
+    quality_threshold: 0.6
+    high_quality_target: 10  # Number of high quality articles before updating feed
+    output_feed: "feed_ml.xml"
+    
+  Tech:
+    name: "Technology"
+    description: "General technology news and updates"
+    feedly_category: "Tech"
+    prompts_file: "tech.yml"
+    quality_threshold: 0.7
+    high_quality_target: 8
+    output_feed: "feed_tech.xml"
+    
+  Cyber:
+    name: "Cybersecurity"
+    description: "Cybersecurity news and research"
+    feedly_category: "Cyber"
+    prompts_file: "cyber.yml"
+    quality_threshold: 0.65
+    high_quality_target: 12
+    output_feed: "feed_cyber.xml"
+    
+  Programming:
+    name: "Programming"
+    description: "Programming tutorials, languages, and development"
+    feedly_category: "Programming"
+    prompts_file: "programming.yml"
+    quality_threshold: 0.6
+    high_quality_target: 10
+    output_feed: "feed_programming.xml"
+    
+  Culture:
+    name: "Tech Culture"
+    description: "Technology culture, industry news, and commentary"
+    feedly_category: "Culture"
+    prompts_file: "culture.yml"
+    quality_threshold: 0.5
+    high_quality_target: 15
+    output_feed: "feed_culture.xml"
+
+# Global settings
+global:
+  default_fetch_count: 100
+  default_provider: "ollama"
+  mongodb_collection_prefix: "feed_items"
