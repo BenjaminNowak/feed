@@ -263,6 +263,8 @@ services:
    - Secrets stored securely using Docker secrets
    - No sensitive data in git repository
    - Restricted file permissions
+   - MongoDB initialization script reads credentials from Docker secrets
+   - Fallback to environment variables for development environments
    - Pre-commit hooks for secret detection:
      - Gitleaks for comprehensive secret scanning
      - Custom pattern-based secret detection
