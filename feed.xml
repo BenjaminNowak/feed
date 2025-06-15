@@ -4,7 +4,7 @@
     <title>AI and Tech Feed</title>
     <description>Curated articles about artificial intelligence, technology, and software development, filtered by relevance and technical value</description>
     <link>https://github.com/BenjaminNowak/feed</link>
-    <lastBuildDate>Sat, 14 Jun 2025 21:03:14 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 14 Jun 2025 23:55:53 +0000</lastBuildDate>
     <item>
       <title>AlphaEvolve - a Gemini-powered coding agent</title>
       <description>DeepMind's AlphaEvolve project explores algorithm design with Gemini. PDF: https://storage.googleapis.com/deepmind-media/DeepMind.com/Blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/AlphaEvolve.pdf</description>
@@ -18,6 +18,132 @@
       <link>https://linux.slashdot.org/story/25/06/14/1947215/rocky-and-alma-linux-still-going-strong-rhel-adds-an-ai-assistant</link>
       <pubDate>Sat, 14 Jun 2025 19:49:00 +0000</pubDate>
       <guid>7kZ9jBYy0jNWfThTWbMvXoOEh6EzrtgZCDjMlaPKIXQ=_19770028ed9:32efb51:c6e49d22</guid>
+    </item>
+    <item>
+      <title>The case for embedding audit trails in AI systems before scaling</title>
+      <description>With more AI applications and agents going into production, enterprises need robust and auditable AI pipelines more than ever.Read More</description>
+      <link>https://venturebeat.com/ai/the-case-for-embedding-audit-trails-in-ai-systems-before-scaling/</link>
+      <pubDate>Fri, 13 Jun 2025 20:13:09 +0000</pubDate>
+      <guid>s+9S2df7ZC1Ojqxi0Mq1/UIrXjTAKwLcuJZNhaJasB4=_1976aee01b5:2a50d5a:c6e49d22</guid>
+    </item>
+    <item>
+      <title>Do reasoning models really “think” or not? Apple research sparks lively debate, response</title>
+      <description>Ultimately, the big takeaway for ML researchers is that before proclaiming an AI milestone—or obituary—make sure the test itself isn’t flawedRead More</description>
+      <link>https://venturebeat.com/ai/do-reasoning-models-really-think-or-not-apple-research-sparks-lively-debate-response/</link>
+      <pubDate>Fri, 13 Jun 2025 22:02:22 +0000</pubDate>
+      <guid>s+9S2df7ZC1Ojqxi0Mq1/UIrXjTAKwLcuJZNhaJasB4=_1976b56211b:2a9c4ff:cfb2748</guid>
+    </item>
+    <item>
+      <title>Giving an LLM Command Line Access to Nmap</title>
+      <description>submitted by /u/thewanderer1999 [link][comments]</description>
+      <link>https://www.reddit.com/r/netsec/comments/1lasts2/giving_an_llm_command_line_access_to_nmap/</link>
+      <pubDate>Fri, 13 Jun 2025 22:19:04 +0000</pubDate>
+      <guid>Bv5TdBWfcWFbQc0onABBZ1VLqSAA/Kz8RimFcz+sMHM=_1976bd808c7:2b7933f:cfb2748</guid>
+    </item>
+    <item>
+      <title>Discord Invite Link Hijacking Delivers AsyncRAT and Skuld Stealer Targeting Crypto Wallets</title>
+      <description>A new malware campaign is exploiting a weakness in Discord's invitation system to deliver an information stealer called Skuld and the AsyncRAT remote access trojan. "Attackers hijacked the links through vanity link registration, allowing them to silently redirect users from trusted sources to malicious servers," Check Point said in a technical report. "The attackers combined the ClickFix</description>
+      <link>https://thehackernews.com/2025/06/discord-invite-link-hijacking-delivers.html</link>
+      <pubDate>Sat, 14 Jun 2025 02:45:00 +0000</pubDate>
+      <guid>zwUJFVdnktlsCRyWGJ/if2dTo03NYy+gE/Px51ybzi4=_1976c822f65:2d0375b:c6e49d22</guid>
+    </item>
+    <item>
+      <title>Make Self-XSS Great Again</title>
+      <description>submitted by /u/AlmondOffSec [link][comments]</description>
+      <link>https://www.reddit.com/r/netsec/comments/1lb3wfp/make_selfxss_great_again/</link>
+      <pubDate>Sat, 14 Jun 2025 08:36:22 +0000</pubDate>
+      <guid>Bv5TdBWfcWFbQc0onABBZ1VLqSAA/Kz8RimFcz+sMHM=_1976e6c6239:2ff75cc:c6e49d22</guid>
+    </item>
+    <item>
+      <title>LLM combo (GPT4.1 + o3-mini-high + Gemini 2.0 Flash) delivers superhuman performance by completing 12 work-years of systematic reviews in just 2 days, offering scalable, mass reproducibility across the systematic review literature field</title>
+      <description>https://www.medrxiv.org/content/10.1101/2025.06.13.25329541v1 Otto-SR: AI-Powered Systematic Review Automation Revolutionary Performance Otto-SR, an LLM-based systematic review automation system, dramatically outperformed traditional human workflows while completing 12 work-years of Cochrane reviews in just 2 days. Key Performance Metrics Screening Accuracy: • Otto-SR: 96.7% sensitivity, 97.9% specificity • Human reviewers: 81.7% sensitivity, 98.1% specificity • Elicit (commercial tool): 88.5% sensitivity, 84.2% specificity Data Extraction Accuracy: • Otto-SR: 93.1% accuracy • Human reviewers: 79.7% accuracy • Elicit: 74.8% accuracy Technical Architecture • GPT-4.1 for article screening • o3-mini-high for data extraction • Gemini 2.0 Flash for PDF-to-markdown conversion • End-to-end automated workflow from search to analysis Real-World Validation Cochrane Reproducibility Study (12 reviews): • Correctly identified all 64 included studies • Found 54 additional eligible studies missed by original authors • Generated new statistically significant findings in 2 reviews • Median 0 studies incorrectly excluded (IQR 0-0.25) Clinical Impact Example In nutrition review, Otto-SR identified 5 additional studies revealing that preoperative immune-enhancing supplementation reduces hospital stays by one day—a finding missed in the original review. Quality Assurance • Blinded human reviewers sided with Otto-SR in 69.3% of extraction disagreements • Human calibration confirmed reviewer competency matched original study authors Transformative Implications • Speed: 12 work-years completed in 2 days • Living Reviews: Enables daily/weekly systematic review updates • Superhuman Performance: Exceeds human accuracy while maintaining speed • Scalability: Mass reproducibility assessments across SR literature This breakthrough demonstrates LLMs can autonomously conduct complex scientific tasks with superior accuracy, potentially revolutionizing evidence-based medicine through rapid, reliable systematic reviews.​​​​​​​​​​​​​​​​ submitted by /u/psychiatrixx [link][comments]</description>
+      <link>https://www.reddit.com/r/singularity/comments/1lb6lel/llm_combo_gpt41_o3minihigh_gemini_20_flash/</link>
+      <pubDate>Sat, 14 Jun 2025 11:35:16 +0000</pubDate>
+      <guid>DVFVeRz9N0AisogWC7pgEigsSnyacK6/SxnqoVmaD1s=_1976f919398:316f494:cfb2748</guid>
+    </item>
+    <item>
+      <title>[D] Research vs industry practices: final training on all data for production models</title>
+      <description>I know in both research/academic and industrial practices, for machine learning model development you split training and validation data in order to be able to measure metrics of the model to get a sense of generalizability. For research, this becomes the basis of your reporting. But in an operational setting at a company, once you are satisfied that it is ready for production, and want to push a version up, do mlops folks retrain using all available data including validation set, since you've completed your assessment stage? With the understanding that any revaluation must start from scratch, and no further training can happen on an instance of the model that has touched the validation data? Basically what are actual production (not just academics) best practices around this idea? I'm moving from a research setting to an industry setting and interested in any thoughts on this. submitted by /u/eyesopen18819 [link][comments]</description>
+      <link>https://www.reddit.com/r/MachineLearning/comments/1lb7xpn/d_research_vs_industry_practices_final_training/</link>
+      <pubDate>Sat, 14 Jun 2025 12:48:43 +0000</pubDate>
+      <guid>Sm7oc3YwZqXAN71NjXIyZk0mchsksXDhQt3diOfQGeg=_1976f72fc87:2f45c0e:df0c225f</guid>
+    </item>
+    <item>
+      <title>[R] Analyzing paths datapoints take through clustered latent space with LLMs</title>
+      <description>Hello, I am an independent researcher who is having some issues getting a signal out. I want to get some feedback on my work as well, I am far from an expert, but I think it is interesting. Basically my approach involves using different clustering approaches to cluster 'activation vectors' within different layers of a NN and then track the paths different datapoints take through those clusters. We care more about how the NN organizes the population thus it is a geometric approach rather than one probing individual weights. The biggest innovation in my mind really is the use of LLMs to label the clusters based on the population, and then with that analyze and label the different common pathways datapoints take (the archetypal paths). Anyways here is a picture showing an experiment tracing 'individual tokens' through GPT2 (early window). Note at the bottom pronouns get split into 'content human/social' and 'functional determiners' at the bottom (semantic purity scores show the percentage of tokens on that path that are of that category). This is somewhat arbitrary as I am tracking individual tokens and many pronouns can be both. The next one is to show how a second embedding would shift the routing from one path to the other (we have a cluster shift scoring metric). Anyways here is my paper: https://drive.google.com/file/d/1aBXxKCsaAJvWbOrJpG6arhdro4XrzAMa/view?usp=sharing The main issues theoretically we somewhat talk about in the paper. First k-means is a heuristic so it will give us a rough lense. This is ok - astronomers do just fine with rough lenses but we do want to find a 'geometrically sound' approach to clustering in latent space. I am exploring hierchical clustering to break down bigger clusters into microclusters, explainable thershold similarity which is a new distance measure that makes more sense versus euclidean and such, and then just rigorous testing of the clustering - can we extract rules from these pathways which match expert systems, can we reproduce clusters over different seeds, etc. Let me know what you think! submitted by /u/RoyalSpecialist1777 [link][comments]</description>
+      <link>https://www.reddit.com/r/MachineLearning/comments/1lb8mtg/r_analyzing_paths_datapoints_take_through/</link>
+      <pubDate>Sat, 14 Jun 2025 13:23:55 +0000</pubDate>
+      <guid>Sm7oc3YwZqXAN71NjXIyZk0mchsksXDhQt3diOfQGeg=_1976f72fc87:2f45c0f:df0c225f</guid>
+    </item>
+    <item>
+      <title>&amp;quot;More Thinking, Less Seeing? Assessing Amplified Hallucination in Multimodal Reasoning Models&amp;quot;</title>
+      <description>https://arxiv.org/abs/2505.21523 "Test-time compute has empowered multimodal large language models to generate extended reasoning chains, yielding strong performance on tasks such as multimodal math reasoning. However, this improved reasoning ability often comes with increased hallucination: as generations become longer, models tend to drift away from image-grounded content and rely more heavily on language priors. Attention analysis shows that longer reasoning chains lead to reduced focus on visual inputs, which contributes to hallucination. To systematically study this phenomenon, we introduce RH-AUC, a metric that quantifies how a model's perception accuracy changes with reasoning length, allowing us to evaluate whether the model preserves visual grounding during reasoning. We also release RH-Bench, a diagnostic benchmark that spans a variety of multimodal tasks, designed to assess the trade-off between reasoning ability and hallucination. Our analysis reveals that (i) larger models typically achieve a better balance between reasoning and perception, and (ii) this balance is influenced more by the types and domains of training data than by its overall volume. These findings underscore the importance of evaluation frameworks that jointly consider both reasoning quality and perceptual fidelity." submitted by /u/AngleAccomplished865 [link][comments]</description>
+      <link>https://www.reddit.com/r/singularity/comments/1lb9ciw/more_thinking_less_seeing_assessing_amplified/</link>
+      <pubDate>Sat, 14 Jun 2025 13:58:59 +0000</pubDate>
+      <guid>DVFVeRz9N0AisogWC7pgEigsSnyacK6/SxnqoVmaD1s=_1976f919398:316f49a:cfb2748</guid>
+    </item>
+    <item>
+      <title>[P] I built an end-to-end system that converts handwriting into a font using a custom PyTorch model, OpenCV and Fonttools. Open-source.</title>
+      <description>Hey r/MachineLearning, I wanted to share a project I've been working on called HandFonted. It's a full-stack Python application that converts an image of handwriting into an installable font file (.ttf). I'll post the direct links to the live demo, the GitHub repo in my first comment below. The Machine Learning Pipeline The core of the project is a three-stage process. The ML model is central, but its success depends heavily on the pre-processing and post-processing steps. 1. Input &amp; Segmentation: A user uploads a single image containing handwritten characters. The image is processed with OpenCV: converted to grayscale, adaptive thresholding is applied, and contours are detected to isolate each character into its own bounding box. 2. Classification &amp; Assignment: Each isolated character image is fed into a pre-trained PyTorch (ResNet-Inception) model. The model outputs a probability matrix for all characters against all possible classes (A-Z, a-z). The Hungarian algorithm (linear_sum_assignment) is used to find the optimal one-to-one assignment, ensuring each character image is mapped to a unique letter. 3. Vectorization &amp; Font Generation: The now-classified character images are converted from raster (pixels) to vector outlines using scikit-image. The fontTools library assembles these vector glyphs into a standard .ttf file, mapping each one to its correct Unicode character. Limitations: The system currently assumes input image has a clearly separated characters on a plain white background to work best. This project was a fantastic learning experience in building a practical, end-to-end ML system. The code is fully open-source, and I'd love any feedback or questions you have about the implementation. submitted by /u/Educational_Pea_5027 [link][comments]</description>
+      <link>https://www.reddit.com/r/MachineLearning/comments/1lb9e4c/p_i_built_an_endtoend_system_that_converts/</link>
+      <pubDate>Sat, 14 Jun 2025 14:00:55 +0000</pubDate>
+      <guid>Sm7oc3YwZqXAN71NjXIyZk0mchsksXDhQt3diOfQGeg=_1976f72fc87:2f45c10:df0c225f</guid>
+    </item>
+    <item>
+      <title>/naver/ MUSt3R: Multi-view Network for Stereo 3D Reconstruction</title>
+      <description>DUSt3R introduced a novel paradigm in geometric computer vision by proposing a model that can provide dense and unconstrained Stereo 3D Reconstruction of arbitrary image collections with no prior information about camera calibration nor viewpoint poses. Code: https://github.com/naver/must3r</description>
+      <link>https://paperswithcode.com/paper/must3r-multi-view-network-for-stereo-3d</link>
+      <pubDate>Sat, 14 Jun 2025 14:00:55 +0000</pubDate>
+      <guid>kZSgFkNn3cjfN9SR+XCWpg7kbLH1GHNslvcCzxLPfLk=_1976ebe4e53:30a4b8f:c6e49d22</guid>
+    </item>
+    <item>
+      <title>Models are sycophantic because that's what people want</title>
+      <description>Paper: https://arxiv.org/pdf/2310.13548 submitted by /u/MetaKnowing [link][comments]</description>
+      <link>https://www.reddit.com/r/singularity/comments/1lbaa7b/models_are_sycophantic_because_thats_what_people/</link>
+      <pubDate>Sat, 14 Jun 2025 14:41:11 +0000</pubDate>
+      <guid>DVFVeRz9N0AisogWC7pgEigsSnyacK6/SxnqoVmaD1s=_1976f919398:316f49d:cfb2748</guid>
+    </item>
+    <item>
+      <title>&amp;quot;Anthropic shares blueprint for Claude Research agent using multiple AI agents in parallel&amp;quot;</title>
+      <description>I can't tell if this is the current research agent or a forthcoming one. https://the-decoder.com/anthropic-shares-blueprint-for-claude-research-agent-using-multiple-ai-agents-in-parallel/ "The system relies on a lead agent that analyzes user prompts, devises a strategy, and then launches several specialized sub-agents to search for information in parallel. This setup allows the agent to process more complex queries faster and more thoroughly than a single agent could." submitted by /u/AngleAccomplished865 [link][comments]</description>
+      <link>https://www.reddit.com/r/singularity/comments/1lbat3g/anthropic_shares_blueprint_for_claude_research/</link>
+      <pubDate>Sat, 14 Jun 2025 15:04:22 +0000</pubDate>
+      <guid>DVFVeRz9N0AisogWC7pgEigsSnyacK6/SxnqoVmaD1s=_1976f919398:316f49e:cfb2748</guid>
+    </item>
+    <item>
+      <title>&amp;quot;Motion Prompting: Controlling Video Generation with Motion Trajectories&amp;quot;</title>
+      <description>This appears to be a new Google thing. https://motion-prompting.github.io/ https://arxiv.org/pdf/2412.02700 "Motion control is crucial for generating expressive and compelling video content; however, most existing video generation models rely mainly on text prompts for control, which struggle to capture the nuances of dynamic actions and temporal compositions. To this end, we train a video generation model conditioned on spatio-temporally sparse or dense motion trajectories. In contrast to prior motion conditioning work, this flexible representation can encode any number of trajectories, object-specific or global scene motion, and temporally sparse motion; due to its flexibility we refer to this conditioning as motion prompts. While users may directly specify sparse trajectories, we also show how to translate high-level user requests into detailed, semi-dense motion prompts, a process we term motion prompt expansion. We demonstrate the versatility of our approach through various applications, including camera and object motion control, “interacting” with an image, motion transfer, and image editing. Our results showcase emergent behaviors, such as realistic physics, suggesting the potential of motion prompts for probing video models and interacting with future generative world models. Finally, we evaluate quantitatively, conduct a human study, and demonstrate strong performance." submitted by /u/AngleAccomplished865 [link][comments]</description>
+      <link>https://www.reddit.com/r/singularity/comments/1lbb47t/motion_prompting_controlling_video_generation/</link>
+      <pubDate>Sat, 14 Jun 2025 15:17:52 +0000</pubDate>
+      <guid>DVFVeRz9N0AisogWC7pgEigsSnyacK6/SxnqoVmaD1s=_1976f919398:316f49f:cfb2748</guid>
+    </item>
+    <item>
+      <title>&amp;quot;PersonaLens: A Benchmark for Personalization Evaluation in Conversational AI Assistants&amp;quot;</title>
+      <description>https://arxiv.org/abs/2506.09902v1 "Large language models (LLMs) have advanced conversational AI assistants. However, systematically evaluating how well these assistants apply personalization--adapting to individual user preferences while completing tasks--remains challenging. Existing personalization benchmarks focus on chit-chat, non-conversational tasks, or narrow domains, failing to capture the complexities of personalized task-oriented assistance. To address this, we introduce PersonaLens, a comprehensive benchmark for evaluating personalization in task-oriented AI assistants. Our benchmark features diverse user profiles equipped with rich preferences and interaction histories, along with two specialized LLM-based agents: a user agent that engages in realistic task-oriented dialogues with AI assistants, and a judge agent that employs the LLM-as-a-Judge paradigm to assess personalization, response quality, and task success. Through extensive experiments with current LLM assistants across diverse tasks, we reveal significant variability in their personalization capabilities, providing crucial insights for advancing conversational AI systems." submitted by /u/AngleAccomplished865 [link][comments]</description>
+      <link>https://www.reddit.com/r/singularity/comments/1lbbavc/personalens_a_benchmark_for_personalization/</link>
+      <pubDate>Sat, 14 Jun 2025 15:25:45 +0000</pubDate>
+      <guid>DVFVeRz9N0AisogWC7pgEigsSnyacK6/SxnqoVmaD1s=_1976f919398:316f4a0:cfb2748</guid>
+    </item>
+    <item>
+      <title>GIMP Heap Overflow Re-Discovery and Exploitation (CVE-2025–6035)</title>
+      <description>submitted by /u/cy1337 [link][comments]</description>
+      <link>https://www.reddit.com/r/netsec/comments/1lbcbap/gimp_heap_overflow_rediscovery_and_exploitation/</link>
+      <pubDate>Sat, 14 Jun 2025 16:09:52 +0000</pubDate>
+      <guid>Bv5TdBWfcWFbQc0onABBZ1VLqSAA/Kz8RimFcz+sMHM=_1976fb66e43:31b0395:cfb2748</guid>
+    </item>
+    <item>
+      <title>[D] Nvidia’s “Join Us or Compete” moment — the GPU cloud stack is collapsing</title>
+      <description>Nvidia is no longer just selling chips. They’re now renting out full servers, launching APIs, releasing their own inference microservices (NIMs), and becoming an AI infrastructure provider in their own right. This creates a very different competitive dynamic: •Traditional GPU cloud providers (and brokers) now compete with Nvidia itself. •AI infra startups who used to sit between Nvidia and developers may find themselves disintermediated. •The new moat is no longer just hardware access , its orchestration, utilization, developer experience, and latency guarantees. It feels like we’re heading into a world where every AI team has to think about: •Who controls the full stack? •How portable is your inference layer? •Are you optimizing for cost/performance or just chasing availability? Curious how others see this playing out. Will cloud providers double down on open infra and tooling? Or will more of them eventually join Nvidia’s stack? submitted by /u/pmv143 [link][comments]</description>
+      <link>https://www.reddit.com/r/MachineLearning/comments/1lbccqj/d_nvidias_join_us_or_compete_moment_the_gpu_cloud/</link>
+      <pubDate>Sat, 14 Jun 2025 16:11:33 +0000</pubDate>
+      <guid>Sm7oc3YwZqXAN71NjXIyZk0mchsksXDhQt3diOfQGeg=_1976f72fc87:2f45c12:df0c225f</guid>
+    </item>
+    <item>
+      <title>New nanoparticle-based genetic delivery system targets lungs to treat cancer, cystic fibrosis</title>
+      <description>https://phys.org/news/2025-06-nanoparticle-based-genetic-delivery-lungs.html "Scientists created and tested more than 150 different materials and discovered a new type of nanoparticle that can safely and effectively carry messenger RNA and gene-editing tools to lung cells. In studies with mice, the treatment slowed the growth of lung cancer and helped improve lung function that had been limited by cystic fibrosis, a condition caused by one faulty gene. Researchers also developed a chemical strategy to build a broad library of lung-targeting lipids used in the nanocarriers. These materials form the foundation for the new drug delivery system and could be customized to reach different organs in the body, Sahay said." submitted by /u/AngleAccomplished865 [link][comments]</description>
+      <link>https://www.reddit.com/r/singularity/comments/1lbcv3b/new_nanoparticlebased_genetic_delivery_system/</link>
+      <pubDate>Sat, 14 Jun 2025 16:34:01 +0000</pubDate>
+      <guid>DVFVeRz9N0AisogWC7pgEigsSnyacK6/SxnqoVmaD1s=_1976f919398:316f4a4:cfb2748</guid>
     </item>
   </channel>
 </rss>

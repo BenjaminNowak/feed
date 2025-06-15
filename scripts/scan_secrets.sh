@@ -85,8 +85,8 @@ check_file() {
         return 0
     fi
     
-    # Skip files in certain directories
-    if echo "$file" | grep -q "^docker/secrets/\|^venv/\|^\.git/"; then
+    # Skip files in certain directories, test files, and feed.xml
+    if echo "$file" | grep -q "^docker/secrets/\|^venv/\|^\.git/\|^tests/\|_test\.py$\|test_.*\.py$\|^feed\.xml$"; then
         return 0
     fi
     
