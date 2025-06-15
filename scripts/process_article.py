@@ -8,8 +8,14 @@ from feed_aggregator.storage.mongodb_client import MongoDBClient
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Process a Feedly article URL")
-    parser.add_argument("url", help="Feedly article URL to process")
+    parser = argparse.ArgumentParser(description="Process a Feedly article")
+    parser.add_argument(
+        "url",
+        help=(
+            "Either a full Feedly URL (https://feedly.com/i/entry/<entry_id>) "
+            "or just the entry ID"
+        ),
+    )
     parser.add_argument(
         "--category",
         default="Tech",

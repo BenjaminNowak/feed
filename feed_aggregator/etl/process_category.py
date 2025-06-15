@@ -4,11 +4,15 @@ from datetime import datetime
 from typing import Optional
 
 from feed_aggregator.config.category_config import CategoryConfig
+from feed_aggregator.config.logging_config import setup_logging
 from feed_aggregator.etl import update_feed
 from feed_aggregator.fetcher import FeedlyFetcher, URLFetcher
 from feed_aggregator.processing.content_analyzer import ContentAnalyzer
 from feed_aggregator.processing.llm_filter import LLMFilter
 from feed_aggregator.storage.mongodb_client import MongoDBClient
+
+# Set up logger
+logger = setup_logging(__name__)
 
 
 def git_commit_and_push():
@@ -24,9 +28,9 @@ def git_commit_and_push():
         subprocess.run(
             ["git", "push"], check=True
         )  # nosec B603, B607 - Controlled git command
-        print(f"Successfully committed and pushed feed update at {timestamp}")
+        logger.info(f"Successfully committed and pushed feed update at {timestamp}")
     except subprocess.CalledProcessError as e:
-        print(f"Error during git operations: {e}")
+        logger.error(f"Error during git operations: {e}")
 
 
 def _initialize_components(category_key: str, category_config: CategoryConfig):
@@ -68,13 +72,13 @@ def _get_category_data(
         category_config: Category configuration instance
     """
     available_categories = list(fetcher.session.user.user_categories.name2stream.keys())
-    print(f"Available categories: {available_categories}")
+    logger.debug(f"Available categories: {available_categories}")
 
     feedly_category = category_config.get_feedly_category(category_key)
     if feedly_category not in available_categories:
         raise ValueError(f"Category '{feedly_category}' not found in Feedly")
 
-    print(f"\nFetching from category: {feedly_category}")
+    logger.info(f"Fetching from category: {feedly_category}")
 
     global_config = category_config.get_global_config()
     fetch_count = global_config.get("default_fetch_count", 100)
@@ -82,7 +86,7 @@ def _get_category_data(
     data = fetcher.get_stream_contents(
         f"user/{user_id}/category/{feedly_category}", count=fetch_count
     )
-    print(f"\nFetched {len(data['items'])} items")
+    logger.info(f"Fetched {len(data['items'])} items")
     return data
 
 
@@ -101,7 +105,7 @@ def _process_single_item(
     # Check if item exists and has been analyzed
     existing_item = mongo_client.feed_items.find_one({"id": item["id"]})
     if existing_item and "llm_analysis" in existing_item:
-        print("Item already analyzed, skipping...")
+        logger.debug("Item already analyzed, skipping...")
         return None
 
     # Get all available content
@@ -139,15 +143,15 @@ def _process_single_item(
 
     # Print analysis results
     relevance_score = llm_analysis["relevance_score"]
-    print(f"Relevance score: {relevance_score} (threshold: {quality_threshold})")
+    logger.debug(f"Relevance score: {relevance_score} (threshold: {quality_threshold})")
 
     if llm_analysis.get("filtered_reason"):
-        print(f"Filtered reason: {llm_analysis['filtered_reason']}")
+        logger.info(f"Filtered reason: {llm_analysis['filtered_reason']}")
         item["processing_status"] = "filtered_out"
         return 0  # Not high quality
 
     if relevance_score >= quality_threshold:  # Use category-specific threshold
-        print("High quality article found!")
+        logger.info("High quality article found!")
         return 1  # High quality
 
     return 0  # Not high quality
@@ -178,7 +182,7 @@ def _clean_item_data(item):
                     item["url_content"] = url_content
                 url_fetcher.close()
             except Exception as e:
-                print(f"Error fetching URL content: {e}")
+                logger.error(f"Error fetching URL content: {e}", exc_info=True)
 
 
 def fetch_category_articles(category_key: str, category_config: CategoryConfig) -> int:
@@ -192,9 +196,9 @@ def fetch_category_articles(category_key: str, category_config: CategoryConfig) 
         Number of new articles fetched
     """
     try:
-        print(f"\n{'='*50}")
-        print(f"FETCHING ARTICLES FROM: {category_key}")
-        print(f"{'='*50}")
+        logger.info(f"{'='*50}")
+        logger.info(f"FETCHING ARTICLES FROM: {category_key}")
+        logger.info(f"{'='*50}")
 
         # Initialize fetcher and mongo client
         token = os.environ.get("FEEDLY_TOKEN")
@@ -225,12 +229,12 @@ def fetch_category_articles(category_key: str, category_config: CategoryConfig) 
             mongo_client.store_feed_items([item])
             new_articles += 1
 
-        print(f"Fetched {new_articles} new articles from {category_key}")
+        logger.info(f"Fetched {new_articles} new articles from {category_key}")
         mongo_client.close()
         return new_articles
 
     except Exception as e:
-        print(f"Error fetching from {category_key}: {e}")
+        logger.error(f"Error fetching from {category_key}: {e}", exc_info=True)
         return 0
 
 
@@ -262,7 +266,9 @@ def _initialize_category_components(categories: list, category_config: CategoryC
                 "filtered": 0,
             }
         except Exception as e:
-            print(f"Error initializing components for {category_key}: {e}")
+            logger.error(
+                f"Error initializing components for {category_key}: {e}", exc_info=True
+            )
             continue
 
     return category_components, category_stats
@@ -284,7 +290,7 @@ def _process_category_batch(
     if not pending_articles:
         return 0
 
-    print(f"\nProcessing {len(pending_articles)} articles from {category_key}")
+    logger.info(f"Processing {len(pending_articles)} articles from {category_key}")
     articles_processed = 0
 
     for item in pending_articles:
@@ -325,8 +331,8 @@ def _process_category_batch(
                 # Check if we should update feed
                 target = components["high_quality_target"]
                 if components["high_quality_count"] >= target:
-                    print(
-                        f"\n{category_key}: Found {target} high quality articles - "
+                    logger.info(
+                        f"{category_key}: Found {target} high quality articles - "
                         "updating feed..."
                     )
                     update_feed.main()
@@ -338,7 +344,9 @@ def _process_category_batch(
             articles_processed += 1
 
         except Exception as e:
-            print(f"Error processing article from {category_key}: {e}")
+            logger.error(
+                f"Error processing article from {category_key}: {e}", exc_info=True
+            )
             continue
 
     return articles_processed
@@ -346,16 +354,16 @@ def _process_category_batch(
 
 def _print_processing_statistics(category_stats: dict, category_components: dict):
     """Print final processing statistics."""
-    print(f"\n{'='*60}")
-    print("FINAL PROCESSING STATISTICS")
-    print(f"{'='*60}")
+    logger.info(f"{'='*60}")
+    logger.info("FINAL PROCESSING STATISTICS")
+    logger.info(f"{'='*60}")
 
     for category_key, stats in category_stats.items():
         if category_key in category_components:
-            print(f"{category_key}:")
-            print(f"  Processed: {stats['processed']}")
-            print(f"  High Quality: {stats['high_quality']}")
-            print(f"  Filtered: {stats['filtered']}")
+            logger.info(f"{category_key}:")
+            logger.info(f"  Processed: {stats['processed']}")
+            logger.info(f"  High Quality: {stats['high_quality']}")
+            logger.info(f"  Filtered: {stats['filtered']}")
 
 
 def process_pending_articles_round_robin(
@@ -367,9 +375,9 @@ def process_pending_articles_round_robin(
         categories: List of category keys to process
         category_config: Category configuration instance
     """
-    print(f"\n{'='*60}")
-    print("PROCESSING PENDING ARTICLES (ROUND-ROBIN)")
-    print(f"{'='*60}")
+    logger.info(f"{'='*60}")
+    logger.info("PROCESSING PENDING ARTICLES (ROUND-ROBIN)")
+    logger.info(f"{'='*60}")
 
     # Initialize components for each category
     category_components, category_stats = _initialize_category_components(
@@ -398,7 +406,7 @@ def process_pending_articles_round_robin(
         if articles_processed_this_round == 0:
             break
 
-        print(f"\nRound completed. Total processed: {total_processed}")
+        logger.info(f"Round completed. Total processed: {total_processed}")
 
     # Print final statistics and close connections
     _print_processing_statistics(category_stats, category_components)
@@ -423,20 +431,20 @@ def _print_final_stats(mongo_client):
         ),
     }
 
-    print("\nFinal MongoDB Status:")
-    print(f"Total items: {metrics['total_items']}")
-    print(f"Pending items: {metrics['pending_items']}")
-    print(f"Processed items: {metrics['processed_items']}")
-    print(f"Filtered items: {metrics['filtered_items']}")
+    logger.info("Final MongoDB Status:")
+    logger.info(f"Total items: {metrics['total_items']}")
+    logger.info(f"Pending items: {metrics['pending_items']}")
+    logger.info(f"Processed items: {metrics['processed_items']}")
+    logger.info(f"Filtered items: {metrics['filtered_items']}")
 
 
 def _process_pending_articles_step(
     category_key: str, category_config: CategoryConfig, mongo_client
 ) -> None:
     """Step 2: Process all pending articles from MongoDB."""
-    print(f"\n{'='*50}")
-    print("STEP 2: PROCESSING PENDING ARTICLES FROM MONGODB")
-    print(f"{'='*50}")
+    logger.info(f"{'='*50}")
+    logger.info("STEP 2: PROCESSING PENDING ARTICLES FROM MONGODB")
+    logger.info(f"{'='*50}")
 
     # Get all pending articles for this category from MongoDB
     pending_articles = list(
@@ -447,10 +455,10 @@ def _process_pending_articles_step(
         )  # Process oldest first
     )
 
-    print(f"Found {len(pending_articles)} pending articles to process")
+    logger.info(f"Found {len(pending_articles)} pending articles to process")
 
     if len(pending_articles) == 0:
-        print("No pending articles to process")
+        logger.info("No pending articles to process")
         return
 
     # Initialize components for processing
@@ -464,8 +472,8 @@ def _process_pending_articles_step(
 
     # Process each pending article
     for i, item in enumerate(pending_articles, 1):
-        print(f"\nProcessing item {i}/{len(pending_articles)}")
-        print(f"Title: {item.get('title', 'No title')}")
+        logger.info(f"Processing item {i}/{len(pending_articles)}")
+        logger.info(f"Title: {item.get('title', 'No title')}")
 
         try:
             quality_result = _process_single_item(
@@ -493,19 +501,21 @@ def _process_pending_articles_step(
 
             if quality_result == 1:  # High quality
                 high_quality_count += 1
-                print(f"High quality article found! (Total: {high_quality_count})")
+                logger.info(
+                    f"High quality article found! (Total: {high_quality_count})"
+                )
 
                 # If we've found enough high quality articles, update feed
                 if high_quality_count == high_quality_target:
-                    print(
-                        f"\nFound {high_quality_target} high quality articles - updating feed..."
+                    logger.info(
+                        f"Found {high_quality_target} high quality articles - updating feed..."
                     )
                     update_feed.main()
                     git_commit_and_push()
                     high_quality_count = 0  # Reset counter
 
         except Exception as e:
-            print(f"Error processing item: {e}")
+            logger.error(f"Error processing item: {e}", exc_info=True)
             continue
 
 
@@ -513,9 +523,9 @@ def _publish_unpublished_articles_step(
     category_key: str, category_config: CategoryConfig, mongo_client
 ) -> None:
     """Step 3: Always check for and publish any high-quality articles that haven't been published yet."""
-    print(f"\n{'='*50}")
-    print("STEP 3: PUBLISHING PENDING HIGH-QUALITY ARTICLES")
-    print(f"{'='*50}")
+    logger.info(f"{'='*50}")
+    logger.info("STEP 3: PUBLISHING PENDING HIGH-QUALITY ARTICLES")
+    logger.info(f"{'='*50}")
 
     # Check if there are any high-quality processed articles that haven't been published
     quality_threshold = category_config.get_quality_threshold(category_key)
@@ -534,12 +544,14 @@ def _publish_unpublished_articles_step(
     )
 
     if unpublished_articles:
-        print(f"Found {len(unpublished_articles)} unpublished high-quality articles")
-        print("Updating feed with pending articles...")
+        logger.info(
+            f"Found {len(unpublished_articles)} unpublished high-quality articles"
+        )
+        logger.info("Updating feed with pending articles...")
         update_feed.main()
         git_commit_and_push()
     else:
-        print("No unpublished high-quality articles found")
+        logger.info("No unpublished high-quality articles found")
 
 
 def main(category_key: Optional[str] = None):
@@ -556,25 +568,25 @@ def main(category_key: Optional[str] = None):
         # Load category configuration
         category_config = CategoryConfig()
 
-        print(f"Processing category: {category_key}")
-        print(f"Available categories: {category_config.get_all_categories()}")
+        logger.info(f"Processing category: {category_key}")
+        logger.debug(f"Available categories: {category_config.get_all_categories()}")
 
         # Get category-specific settings
         quality_threshold = category_config.get_quality_threshold(category_key)
         high_quality_target = category_config.get_high_quality_target(category_key)
         output_feed = category_config.get_output_feed(category_key)
 
-        print(f"Quality threshold: {quality_threshold}")
-        print(f"High quality target: {high_quality_target}")
-        print(f"Output feed: {output_feed}")
+        logger.debug(f"Quality threshold: {quality_threshold}")
+        logger.debug(f"High quality target: {high_quality_target}")
+        logger.debug(f"Output feed: {output_feed}")
 
         # Step 1: Fetch new articles from Feedly and store them in MongoDB
-        print(f"\n{'='*50}")
-        print("STEP 1: FETCHING NEW ARTICLES FROM FEEDLY")
-        print(f"{'='*50}")
+        logger.info(f"{'='*50}")
+        logger.info("STEP 1: FETCHING NEW ARTICLES FROM FEEDLY")
+        logger.info(f"{'='*50}")
 
         new_articles_count = fetch_category_articles(category_key, category_config)
-        print(f"Fetched {new_articles_count} new articles from Feedly")
+        logger.info(f"Fetched {new_articles_count} new articles from Feedly")
 
         # Initialize MongoDB client for steps 2 and 3
         _, _, _, mongo_client = _initialize_components(category_key, category_config)
@@ -589,7 +601,7 @@ def main(category_key: Optional[str] = None):
         _print_final_stats(mongo_client)
 
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}", exc_info=True)
     finally:
         if "mongo_client" in locals():
             mongo_client.close()

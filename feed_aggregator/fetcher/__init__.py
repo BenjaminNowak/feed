@@ -144,10 +144,11 @@ class FeedlyFetcher:
         return None
 
     def get_entry_by_url(self, entry_url: str) -> dict:
-        """Fetch a single entry by its Feedly URL.
+        """Fetch a single entry by its Feedly URL or entry ID.
 
         Args:
-            entry_url: The Feedly URL in format: https://feedly.com/i/entry/<entry_id>
+            entry_url: Either a full Feedly URL (https://feedly.com/i/entry/<entry_id>)
+                      or just the entry ID
 
         Returns:
             dict: The entry data
@@ -159,10 +160,11 @@ class FeedlyFetcher:
         if self.demo_mode:
             return self._get_demo_data("demo_stream", 1)["items"][0]
 
-        # Extract entry ID from URL
-        if not entry_url.startswith("https://feedly.com/i/entry/"):
-            raise ValueError("Invalid Feedly entry URL format")
-        entry_id = entry_url.split("/entry/", 1)[1]
+        # Extract entry ID from URL or use directly if it's just an ID
+        if entry_url.startswith("https://feedly.com/i/entry/"):
+            entry_id = entry_url.split("/entry/", 1)[1]
+        else:
+            entry_id = entry_url
 
         try:
             # Get available categories
