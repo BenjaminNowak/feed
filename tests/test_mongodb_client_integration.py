@@ -1,11 +1,27 @@
 """Integration tests for MongoDB client using testcontainers."""
+import time
 from datetime import UTC, datetime
 from typing import Generator
 
 import pytest
+from pymongo import ASCENDING
+from pymongo.operations import UpdateOne
 from testcontainers.mongodb import MongoDbContainer
 
 from feed_aggregator.storage.mongodb_client import MongoDBClient
+
+
+def wait_for_mongodb(client, timeout=30, interval=1):
+    """Wait for MongoDB to become available."""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            # Ping the database
+            client.admin.command("ping")
+            return True
+        except Exception:
+            time.sleep(interval)
+    return False
 
 
 @pytest.fixture(scope="session")
@@ -23,6 +39,11 @@ def mongodb_container() -> Generator[MongoDbContainer, None, None]:
         print(
             f"MongoDB test container running on {container.get_container_host_ip()}:{container.get_exposed_port(27017)}"
         )
+        # Wait for container to be ready
+        client = container.get_connection_client()
+        if not wait_for_mongodb(client):
+            raise Exception("MongoDB container failed to become ready")
+        client.close()
         yield container
 
 
@@ -215,3 +236,127 @@ class TestMongoDBClientIntegration:
 
         # Test invalid update
         assert mongodb_client.update_item("nonexistent_id", {"status": "test"}) is False
+
+    def test_complex_aggregation_metrics(self, mongodb_client):
+        """Test complex aggregation pipeline for advanced metrics."""
+        # Insert test data with various statuses and categories
+        test_items = [
+            {
+                "id": f"test_{i}",
+                "title": f"Test {i}",
+                "category": "tech" if i % 2 == 0 else "cyber",
+                "processing_status": mongodb_client.STATUS_PROCESSED
+                if i % 3 == 0
+                else mongodb_client.STATUS_FILTERED
+                if i % 3 == 1
+                else mongodb_client.STATUS_PENDING,
+                "llm_analysis": {"relevance_score": 0.5 + (i / 10)},
+                "published": datetime.now(UTC).timestamp() * 1000,
+            }
+            for i in range(10)
+        ]
+        mongodb_client.store_feed_items(test_items)
+
+        # Get status counts by category using aggregation
+        pipeline = [
+            {
+                "$group": {
+                    "_id": {"category": "$category", "status": "$processing_status"},
+                    "count": {"$sum": 1},
+                    "avg_score": {"$avg": "$llm_analysis.relevance_score"},
+                }
+            },
+            {"$sort": {"_id.category": 1, "_id.status": 1}},
+        ]
+
+        results = list(mongodb_client.feed_items.aggregate(pipeline))
+        assert len(results) > 0
+
+        # Verify aggregation results
+        for result in results:
+            assert "count" in result
+            assert "avg_score" in result
+            assert "_id" in result and "category" in result["_id"]
+
+    def test_index_performance(self, mongodb_client):
+        """Test index usage and performance."""
+        # Create compound index
+        mongodb_client.feed_items.create_index(
+            [
+                ("category", ASCENDING),
+                ("processing_status", ASCENDING),
+                ("published", ASCENDING),
+            ],
+            name="category_status_published_idx",
+        )
+
+        # Insert test data
+        test_items = [
+            {
+                "id": f"perf_test_{i}",
+                "title": f"Performance Test {i}",
+                "category": "tech",
+                "processing_status": mongodb_client.STATUS_PROCESSED,
+                "published": datetime.now(UTC).timestamp() * 1000 - (i * 1000),
+                "llm_analysis": {"relevance_score": 0.8},
+            }
+            for i in range(100)
+        ]
+        mongodb_client.store_feed_items(test_items)
+
+        # Query using index
+        query = {
+            "category": "tech",
+            "processing_status": mongodb_client.STATUS_PROCESSED,
+        }
+
+        # Get query explanation
+        explanation = mongodb_client.feed_items.find(query).explain()
+
+        # Verify index usage
+        assert "queryPlanner" in explanation
+        assert "winningPlan" in explanation["queryPlanner"]
+        assert "inputStage" in explanation["queryPlanner"]["winningPlan"]
+
+        # Verify query uses index
+        winning_plan = explanation["queryPlanner"]["winningPlan"]
+        assert "indexName" in winning_plan["inputStage"]
+        assert (
+            winning_plan["inputStage"]["indexName"] == "category_status_published_idx"
+        )
+
+    def test_bulk_operations(self, mongodb_client):
+        """Test bulk operations with large datasets."""
+        # Create large dataset
+        bulk_items = [
+            {
+                "id": f"bulk_test_{i}",
+                "title": f"Bulk Test {i}",
+                "content": {"content": f"Bulk content {i}"},
+                "processing_status": "pending",
+                "published": datetime.now(UTC).timestamp() * 1000 - (i * 1000),
+            }
+            for i in range(1000)
+        ]
+
+        # Test bulk insert
+        stored_count = mongodb_client.store_feed_items(bulk_items)
+        assert stored_count == 1000
+
+        # Test bulk update
+        bulk_ops = []
+        for i in range(1000):
+            bulk_ops.append(
+                UpdateOne(
+                    {"id": f"bulk_test_{i}"},
+                    {"$set": {"processing_status": "processed"}},
+                )
+            )
+        result = mongodb_client.feed_items.bulk_write(bulk_ops)
+        assert result.modified_count == 1000
+
+        # Verify updates
+        processed_count = mongodb_client.feed_items.count_documents(
+            {"processing_status": "processed"}
+        )
+        assert processed_count == 1000
