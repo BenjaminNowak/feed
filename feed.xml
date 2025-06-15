@@ -4,7 +4,7 @@
     <title>AI and Tech Feed</title>
     <description>Curated articles about artificial intelligence, technology, and software development, filtered by relevance and technical value</description>
     <link>https://github.com/BenjaminNowak/feed</link>
-    <lastBuildDate>Sun, 15 Jun 2025 02:21:04 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 15 Jun 2025 10:49:31 +0000</lastBuildDate>
     <item>
       <title>AlphaEvolve - a Gemini-powered coding agent</title>
       <description>DeepMind's AlphaEvolve project explores algorithm design with Gemini. PDF: https://storage.googleapis.com/deepmind-media/DeepMind.com/Blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/AlphaEvolve.pdf</description>
@@ -214,6 +214,20 @@
       <link>https://paperswithcode.com/paper/benchmarking-laparoscopic-surgical-image</link>
       <pubDate>Sat, 14 Jun 2025 14:00:55 +0000</pubDate>
       <guid>kZSgFkNn3cjfN9SR+XCWpg7kbLH1GHNslvcCzxLPfLk=_1976ebe4e53:30a4b88:c6e49d22</guid>
+    </item>
+    <item>
+      <title>CISA Releases Cybersecurity Advisory on SimpleHelp RMM Vulnerability</title>
+      <description>Today, CISA released Cybersecurity Advisory: Ransomware Actors Exploit Unpatched SimpleHelp Remote Monitoring and Management to Compromise Utility Billing Software Provider. This advisory is in response to ransomware actors targeting customers of a utility billing software provider through unpatched vulnerabilities in SimpleHelp Remote Monitoring and Management (RMM). This incident is part of a broader trend of ransomware actors exploiting unpatched versions of SimpleHelp RMM since January 2025. SimpleHelp versions 5.5.7 and earlier contain multiple vulnerabilities, including CVE-2024-57727, a path traversal vulnerability. Ransomware actors likely exploited CVE-2024-57727 to access downstream customers’ unpatched SimpleHelp RMM, resulting in service disruptions and double extortion incidents. CISA added CVE-2024-57727 to its Known Exploited Vulnerabilities Catalog on February 13, 2025. Organizations using SimpleHelp RMM should: Search for evidence of compromise, Apply the mitigations outlined in the advisory such as patching CVE-2024-57727 and/or implementing appropriate workarounds to prevent or respond to confirmed or potential compromises, and Follow CISA’s Known Exploited Vulnerabilities Catalog.</description>
+      <link>https://www.cisa.gov/news-events/alerts/2025/06/12/cisa-releases-cybersecurity-advisory-simplehelp-rmm-vulnerability</link>
+      <pubDate>Thu, 12 Jun 2025 12:00:00 +0000</pubDate>
+      <guid>3oIJSVRuEey5rXohqK8GL0rJdhuW7dVYe4F5Oi5zYFg=_197659bf164:1da75a9:cfb2748</guid>
+    </item>
+    <item>
+      <title>[P] Non Diverse predictions for Time Series Custom Transformer using global Zscore and RevIn</title>
+      <description>Hi. Im currently building a custom transformer for time series forecasting ( percentage deltas) for an index. I added RevIn along with global Zscore but have this issue that predictions are almost constant (variation after 4-5 decimals for all samples). Added revin the solve the problem of index shift, but facing this issue. Any suggestions? submitted by /u/Sufficient_Sir_4730 [link][comments]</description>
+      <link>https://www.reddit.com/r/MachineLearning/comments/1lb2eah/p_non_diverse_predictions_for_time_series_custom/</link>
+      <pubDate>Sat, 14 Jun 2025 06:56:19 +0000</pubDate>
+      <guid>Sm7oc3YwZqXAN71NjXIyZk0mchsksXDhQt3diOfQGeg=_1976e29af14:2d170fb:df0c225f</guid>
     </item>
   </channel>
 </rss>
