@@ -167,20 +167,17 @@ class LLMFilter:
             # Clean the content - remove any markdown code block markers and thinking process
             content = content.strip()
 
-            # Try to find JSON content
-            json_start = content.rfind("{")
-            json_end = content.rfind("}") + 1
-            if json_start >= 0 and json_end > json_start:
-                content = content[json_start:json_end]
-
-            # Remove any markdown markers
+            # Remove any markdown markers first
             content = content.replace("```json", "").replace("```", "").strip()
 
+            # Try to extract valid JSON using a more robust approach
+            extracted_json = self._extract_json_from_content(content)
+
             try:
-                result = json.loads(content)
+                result = json.loads(extracted_json)
             except json.JSONDecodeError as e:
                 raise ValueError(
-                    f"Invalid JSON in response: {str(e)}\nContent: {content}"
+                    f"Invalid JSON in response: {str(e)}\nContent: {extracted_json}"
                 ) from e
 
             # Add metadata about the analysis
@@ -204,6 +201,53 @@ class LLMFilter:
             error_msg = f"Ollama API error: {str(e)}"
             logger.error(error_msg)
             raise ValueError(error_msg) from e
+
+    def _extract_json_from_content(self, content: str) -> str:
+        """Extract valid JSON from content that may have extra text.
+
+        This method uses a more robust approach to find and extract JSON
+        by counting braces to find the complete JSON object.
+
+        Args:
+            content: Raw content that may contain JSON with extra text
+
+        Returns:
+            Extracted JSON string
+
+        Raises:
+            ValueError: If no valid JSON object is found
+        """
+        content = content.strip()
+
+        # Find the first opening brace
+        json_start = content.find("{")
+        if json_start == -1:
+            raise ValueError("No JSON object found in content")
+
+        # Count braces to find the matching closing brace
+        brace_count = 0
+        json_end = json_start
+
+        for i in range(json_start, len(content)):
+            char = content[i]
+            if char == "{":
+                brace_count += 1
+            elif char == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    json_end = i + 1
+                    break
+
+        if brace_count != 0:
+            raise ValueError("Unmatched braces in JSON content")
+
+        extracted = content[json_start:json_end]
+
+        # Validate that we extracted something that looks like JSON
+        if not extracted.strip():
+            raise ValueError("Empty JSON content extracted")
+
+        return extracted
 
     def _validate_result(self, result: Dict[str, Any]) -> None:
         """Validate LLM response has required fields."""
