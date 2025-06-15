@@ -7,6 +7,8 @@ import ollama
 import yaml
 from openai import OpenAI
 
+from feed_aggregator.config.category_config import CategoryConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,17 +22,21 @@ class LLMFilter:
         self,
         provider: PROVIDERS = "openai",
         config_path: Optional[str] = None,
+        category: Optional[str] = None,
         api_key: Optional[str] = None,
     ):
         """Initialize LLM filter.
 
         Args:
             provider: LLM provider to use ('openai' or 'ollama')
-            config_path: Path to prompts config file
+            config_path: Path to prompts config file (overrides category)
+            category: Category key to load prompts for (e.g., 'Tech', 'ML')
             api_key: Optional API key for OpenAI
         """
         self.provider = provider
-        self.config = self._load_config(config_path)
+        self.category = category
+        self.config_path = config_path
+        self.config = self._load_config(config_path, category)
 
         if provider == "openai":
             self.api_key = api_key or os.getenv("OPENAI_API_KEY")
@@ -43,17 +49,60 @@ class LLMFilter:
             # Ollama runs locally, no auth needed
             self.client = None
 
-    def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
-        """Load prompts from config file."""
-        if not config_path:
-            config_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "config",
-                "prompts.yml",
-            )
+    def _load_config(
+        self, config_path: Optional[str] = None, category: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Load prompts from config file or category-specific config.
+
+        Args:
+            config_path: Direct path to config file (takes precedence)
+            category: Category key to load prompts for
+
+        Returns:
+            Configuration dictionary
+        """
+        # If config_path is provided, use it directly (backward compatibility)
+        if config_path:
+            try:
+                with open(config_path, "r") as f:
+                    config = yaml.safe_load(f)
+                    if not config or "llm_filter" not in config:
+                        raise ValueError(
+                            "Invalid config format: missing llm_filter section"
+                        )
+                    return config["llm_filter"]
+            except (OSError, yaml.YAMLError, ValueError) as e:
+                error_msg = f"Error loading config: {str(e)}"
+                logger.error(error_msg)
+                raise ValueError(error_msg) from e
+
+        # If category is provided, use CategoryConfig to get the prompts file
+        if category:
+            try:
+                category_config = CategoryConfig()
+                prompts_path = category_config.get_prompts_path(category)
+
+                with open(prompts_path, "r") as f:
+                    config = yaml.safe_load(f)
+                    if not config or "llm_filter" not in config:
+                        raise ValueError(
+                            f"Invalid config format in {prompts_path}: missing llm_filter section"
+                        )
+                    return config["llm_filter"]
+            except (OSError, yaml.YAMLError, ValueError) as e:
+                error_msg = f"Error loading category config for '{category}': {str(e)}"
+                logger.error(error_msg)
+                raise ValueError(error_msg) from e
+
+        # Fallback: try to load default prompts.yml (for backward compatibility)
+        default_config_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "config",
+            "prompts.yml",
+        )
 
         try:
-            with open(config_path, "r") as f:
+            with open(default_config_path, "r") as f:
                 config = yaml.safe_load(f)
                 if not config or "llm_filter" not in config:
                     raise ValueError(
@@ -61,7 +110,11 @@ class LLMFilter:
                     )
                 return config["llm_filter"]
         except (OSError, yaml.YAMLError, ValueError) as e:
-            error_msg = f"Error loading config: {str(e)}"
+            error_msg = (
+                f"Error loading config: {str(e)}. "
+                "Please provide either a config_path or category parameter, "
+                "or ensure config/prompts.yml exists."
+            )
             logger.error(error_msg)
             raise ValueError(error_msg) from e
 
@@ -125,6 +178,8 @@ class LLMFilter:
             "temperature": self.config["openai"]["temperature"],
             "timestamp": str(response.created),
             "provider": "openai",
+            "category": self.category,
+            "config_path": self.config_path,
         }
         result["_analysis_metadata"] = metadata
 
@@ -191,6 +246,8 @@ class LLMFilter:
                     response.created_at if hasattr(response, "created_at") else "N/A"
                 ),
                 "provider": "ollama",
+                "category": self.category,
+                "config_path": self.config_path,
             }
             result["_analysis_metadata"] = metadata
 

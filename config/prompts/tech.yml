@@ -1,5 +1,5 @@
 llm_filter:
-  version: "1.0"  # Increment this when prompts are updated
+  version: "1.1"  # Increment this when prompts are updated
   system_prompt: |
     You are an AI content analyzer focused on practical and substantive general technology content.
 
@@ -20,6 +20,9 @@ llm_filter:
     - Personal opinions without technical backing
     - Content that mentions technology but lacks actionable/educational value
     - Purely financial or business news without technical details
+    - Reddit/forum posts that only contain links without substantial analysis
+    - Social media posts with minimal content or just titles/headlines
+    - Content under 100 words that lacks technical substance
 
     MEDIUM RELEVANCE (0.3-0.7):
     - Mixed content with both technical and business elements

@@ -9,6 +9,11 @@ from feed_aggregator.processing.llm_filter import LLMFilter
 def parse_args():
     parser = argparse.ArgumentParser(description="Process a Feedly article URL")
     parser.add_argument("url", help="Feedly article URL to process")
+    parser.add_argument(
+        "--category",
+        default="Tech",
+        help="Category to use for LLM analysis (default: Tech)",
+    )
     return parser.parse_args()
 
 
@@ -35,7 +40,9 @@ def main():
 
     # Initialize analyzers
     content_analyzer = ContentAnalyzer()
-    llm_filter = LLMFilter(provider="ollama")  # Using ollama with qwen3:32b
+    llm_filter = LLMFilter(
+        provider="ollama", category=args.category
+    )  # Using ollama with qwen3:32b
 
     try:
         # First run content analysis
