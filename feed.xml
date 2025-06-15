@@ -4,7 +4,7 @@
     <title>AI and Tech Feed</title>
     <description>Curated articles about artificial intelligence, technology, and software development, filtered by relevance and technical value</description>
     <link>https://github.com/BenjaminNowak/feed</link>
-    <lastBuildDate>Sat, 14 Jun 2025 23:55:53 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 15 Jun 2025 02:21:04 +0000</lastBuildDate>
     <item>
       <title>AlphaEvolve - a Gemini-powered coding agent</title>
       <description>DeepMind's AlphaEvolve project explores algorithm design with Gemini. PDF: https://storage.googleapis.com/deepmind-media/DeepMind.com/Blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/AlphaEvolve.pdf</description>
@@ -144,6 +144,76 @@
       <link>https://www.reddit.com/r/singularity/comments/1lbcv3b/new_nanoparticlebased_genetic_delivery_system/</link>
       <pubDate>Sat, 14 Jun 2025 16:34:01 +0000</pubDate>
       <guid>DVFVeRz9N0AisogWC7pgEigsSnyacK6/SxnqoVmaD1s=_1976f919398:316f4a4:cfb2748</guid>
+    </item>
+    <item>
+      <title>Should I still use analytics?</title>
+      <description>I set up Google Analytics on my site in 2010, and since then use it to track page views to my site. I only care about page views, which I find useful to figure out which pages get the most traffic. It’s interesting data, and sometimes rather useful. But Google collects much more information than just page views, and it’s tracking is more intrusive than I would like. But I had other things I’d rather spend to spend my time on, so doing anything about it never made it high enough up my todo list. But last month I finally did something, having come across some information that did I thought did what I wanted. Essentially I want things set up so that I don’t need to bother with a cookie banner because I only track things that are trackable when someone says “deny all”. Based on some google documentation, I changed my google analytics fragment to: &amp;lt;script async src="https://www.googletagmanager.com/gtag/js?id=G-6D51F4BDVF"&gt;&amp;lt;/script&gt; &amp;lt;script&gt; window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('consent', 'default', { 'ad_user_data': 'denied', 'ad_personalization': 'denied', 'ad_storage': 'denied', 'analytics_storage': 'denied', 'wait_for_update': 500, }); gtag('js', new Date()); gtag('config', 'G-6D51F4BDVF'); &amp;lt;/script&gt; As I understand the documentation, this should turn off the most problematic tracking, but still send a page view event. I took a look at it the following day, and everything seemed to be ok, but now, a couple of weeks later, page views reported by Google Analytics have dropped drastically. Not to zero, but to near zero. I’ve spent a bit of time trying to figure out what’s happening. I used google tag assistant and it indicates the page view events are being sent correctly. But that doesn’t explain why I’m not seeing the page views in my Google data. I’m not sure what to do next. I don’t want to spend too much time on this, after all I’d rather work on writing and editing. I did consider other services to do the tracking, but it looks we’re talking about $100s a month - and it’s just not worth that much to me. There are open source setups I could try an configure on my server, but again that’s effort I don’t really want to go into. Maybe I just live without analytics data.</description>
+      <link>https://martinfowler.com/articles/202506-whither-analytics.html</link>
+      <pubDate>Tue, 03 Jun 2025 13:23:00 +0000</pubDate>
+      <guid>6apOfTjgEN50qjTH0UVkoVR0PCu7ypqc904LGqg+mqo=_19735f92e66:58aadfd:f46a39d4</guid>
+    </item>
+    <item>
+      <title>Paragon Spyware Used to Spy on European Journalists</title>
+      <description>Paragon is an Israeli spyware company, increasingly in the news (now that NSO Group seems to be waning). “Graphite” is the name of its product. Citizen Lab caught it spying on multiple European journalists with a zero-click iOS exploit: On April 29, 2025, a select group of iOS users were notified by Apple that they were targeted with advanced spyware. Among the group were two journalists that consented for the technical analysis of their cases. The key findings from our forensic analysis of their devices are summarized below: Our analysis finds forensic evidence confirming with high confidence that both a prominent European journalist (who requests anonymity), and Italian journalist Ciro Pellegrino, were targeted with Paragon’s Graphite mercenary spyware. We identify an indicator linking both cases to the same Paragon operator. Apple confirms to us that the zero-click attack deployed in these cases was mitigated as of iOS 18.3.1 and has assigned the vulnerability CVE-2025-43200. Our analysis is ongoing. The list of confirmed Italian cases is in the report’s appendix. Italy has recently admitted to using the spyware. TechCrunch article. Slashdot thread.</description>
+      <link>https://www.schneier.com/blog/archives/2025/06/paragon-spyware-used-to-spy-on-european-journalists.html</link>
+      <pubDate>Fri, 13 Jun 2025 10:17:42 +0000</pubDate>
+      <guid>bZfTFi0aVXAtOa1+9AIwJGblEtZ+VS/P7VvpOuzs+8E=_19768d0e89b:24008d6:cfb2748</guid>
+    </item>
+    <item>
+      <title>CTEM is the New SOC: Shifting from Monitoring Alerts to Measuring Risk</title>
+      <description>Introduction: Security at a Tipping Point Security Operations Centers (SOCs) were built for a different era, one defined by perimeter-based thinking, known threats, and manageable alert volumes. But today’s threat landscape doesn’t play by those rules. The sheer volume of telemetry, overlapping tools, and automated alerts has pushed traditional SOCs to the edge. Security teams are overwhelmed,</description>
+      <link>https://thehackernews.com/2025/06/ctem-is-new-soc-shifting-from.html</link>
+      <pubDate>Fri, 13 Jun 2025 10:30:00 +0000</pubDate>
+      <guid>zwUJFVdnktlsCRyWGJ/if2dTo03NYy+gE/Px51ybzi4=_1976902e37f:247e29d:cfb2748</guid>
+    </item>
+    <item>
+      <title>Ransomware Gangs Exploit Unpatched SimpleHelp Flaws to Target Victims with Double Extortion</title>
+      <description>The U.S. Cybersecurity and Infrastructure Security Agency (CISA) on Thursday disclosed that ransomware actors are targeting unpatched SimpleHelp Remote Monitoring and Management (RMM) instances to compromise customers of an unnamed utility billing software provider. "This incident reflects a broader pattern of ransomware actors targeting organizations through unpatched versions of SimpleHelp</description>
+      <link>https://thehackernews.com/2025/06/ransomware-gangs-exploit-unpatched.html</link>
+      <pubDate>Fri, 13 Jun 2025 11:02:00 +0000</pubDate>
+      <guid>zwUJFVdnktlsCRyWGJ/if2dTo03NYy+gE/Px51ybzi4=_1976902e37f:247e29e:cfb2748</guid>
+    </item>
+    <item>
+      <title>Over 269,000 Websites Infected with JSFireTruck JavaScript Malware in One Month</title>
+      <description>Cybersecurity researchers are calling attention to a "large-scale campaign" that has been observed compromising legitimate websites with malicious JavaScript injections. According to Palo Alto Networks Unit 42, these malicious injects are obfuscated using JSFuck, which refers to an "esoteric and educational programming style" that uses only a limited set of characters to write and execute code.</description>
+      <link>https://thehackernews.com/2025/06/over-269000-websites-infected-with.html</link>
+      <pubDate>Fri, 13 Jun 2025 14:12:00 +0000</pubDate>
+      <guid>zwUJFVdnktlsCRyWGJ/if2dTo03NYy+gE/Px51ybzi4=_19769ad3301:25014f5:df0c225f</guid>
+    </item>
+    <item>
+      <title>/hcplab-sysu/ MEIA: Multimodal Embodied Perception and Interaction in Unknown Environments</title>
+      <description>To overcome this limitation, we introduce the Multimodal Embodied Interactive Agent (MEIA), capable of translating high-level tasks expressed in natural language into a sequence of executable actions. Code: https://github.com/hcplab-sysu/causalvlr</description>
+      <link>https://paperswithcode.com/paper/multimodal-embodied-interactive-agent-for</link>
+      <pubDate>Sat, 14 Jun 2025 14:00:55 +0000</pubDate>
+      <guid>kZSgFkNn3cjfN9SR+XCWpg7kbLH1GHNslvcCzxLPfLk=_1976ebe4e53:30a4b8d:c6e49d22</guid>
+    </item>
+    <item>
+      <title>/zulunzhu/ Spiking Graph Convolutional Networks</title>
+      <description>Graph Convolutional Networks (GCNs) achieve an impressive performance due to the remarkable representation ability in learning the graph information. Code: https://github.com/zulunzhu/spikinggcn</description>
+      <link>https://paperswithcode.com/paper/spiking-graph-convolutional-networks-1</link>
+      <pubDate>Sat, 14 Jun 2025 14:00:55 +0000</pubDate>
+      <guid>kZSgFkNn3cjfN9SR+XCWpg7kbLH1GHNslvcCzxLPfLk=_1976ebe4e53:30a4b8b:c6e49d22</guid>
+    </item>
+    <item>
+      <title>/alpha-innovator/ SurveyForge: On the Outline Heuristics, Memory-Driven Generation, and Multi-dimensional Evaluation for Automated Survey Writing</title>
+      <description>Survey paper plays a crucial role in scientific research, especially given the rapid growth of research publications. Code: https://github.com/alpha-innovator/surveyforge</description>
+      <link>https://paperswithcode.com/paper/surveyforge-on-the-outline-heuristics-memory</link>
+      <pubDate>Sat, 14 Jun 2025 14:00:55 +0000</pubDate>
+      <guid>kZSgFkNn3cjfN9SR+XCWpg7kbLH1GHNslvcCzxLPfLk=_1976ebe4e53:30a4b8a:c6e49d22</guid>
+    </item>
+    <item>
+      <title>/yandex-research/ TabM: Advancing Tabular Deep Learning with Parameter-Efficient Ensembling</title>
+      <description>Deep learning architectures for supervised learning on tabular data range from simple multilayer perceptrons (MLP) to sophisticated Transformers and retrieval-augmented methods. Code: https://github.com/yandex-research/tabm</description>
+      <link>https://paperswithcode.com/paper/tabm-advancing-tabular-deep-learning-with</link>
+      <pubDate>Sat, 14 Jun 2025 14:00:55 +0000</pubDate>
+      <guid>kZSgFkNn3cjfN9SR+XCWpg7kbLH1GHNslvcCzxLPfLk=_1976ebe4e53:30a4b89:c6e49d22</guid>
+    </item>
+    <item>
+      <title>/pjlallen/ Benchmarking Laparoscopic Surgical Image Restoration and Beyond</title>
+      <description>To systematically investigate and address various forms of surgical scene degradation, we introduce a real-world open-source surgical image restoration dataset covering laparoscopic environments, called SurgClean, which involves multi-type image restoration tasks, e. g., desmoking, defogging, and desplashing. Code: https://github.com/pjlallen/surgical-image-restoration</description>
+      <link>https://paperswithcode.com/paper/benchmarking-laparoscopic-surgical-image</link>
+      <pubDate>Sat, 14 Jun 2025 14:00:55 +0000</pubDate>
+      <guid>kZSgFkNn3cjfN9SR+XCWpg7kbLH1GHNslvcCzxLPfLk=_1976ebe4e53:30a4b88:c6e49d22</guid>
     </item>
   </channel>
 </rss>
