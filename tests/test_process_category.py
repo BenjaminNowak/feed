@@ -120,7 +120,9 @@ def mock_dependencies(mock_feedly_session):
         "feed_aggregator.etl.process_category.LLMFilter"
     ) as mock_llm, patch(
         "feed_aggregator.etl.process_category.MongoDBClient"
-    ) as mock_mongo:
+    ) as mock_mongo, patch(
+        "feed_aggregator.etl.process_category.CategoryConfig"
+    ) as mock_category_config:
         # Setup mock fetcher
         mock_fetcher_instance = mock_fetcher.return_value
         mock_fetcher_instance.token = "test_token"
@@ -141,17 +143,32 @@ def mock_dependencies(mock_feedly_session):
 
         # Setup mock mongo
         mock_mongo_instance = mock_mongo.return_value
-        mock_mongo_instance.feed_items = MagicMock()
-        mock_mongo_instance.feed_items.find_one.return_value = None
-        mock_mongo_instance.feed_items.count_documents.return_value = 0
+        mock_mongo_instance.get_item.return_value = None
+        mock_mongo_instance.item_exists.return_value = False
         mock_mongo_instance.store_feed_items = MagicMock()
+        mock_mongo_instance.update_item = MagicMock()
+        mock_mongo_instance.get_items_by_status.return_value = (
+            []
+        )  # Default empty result
+        mock_mongo_instance.get_filtered_items.return_value = []
         mock_mongo_instance.close = MagicMock()
+        mock_mongo_instance.STATUS_PENDING = "pending"
+        mock_mongo_instance.STATUS_PROCESSED = "processed"
+        mock_mongo_instance.STATUS_FILTERED = "filtered_out"
+
+        # Setup mock category config
+        mock_config_instance = mock_category_config.return_value
+        mock_config_instance.get_quality_threshold.return_value = 0.6
+        mock_config_instance.get_high_quality_target.return_value = 10
+        mock_config_instance.get_output_feed.return_value = "feed.xml"
+        mock_config_instance.get_feedly_category.return_value = "ML"
 
         yield {
             "fetcher": mock_fetcher_instance,
             "analyzer": mock_analyzer_instance,
             "llm": mock_llm_instance,
             "mongo": mock_mongo_instance,
+            "config": mock_config_instance,
         }
 
 
@@ -168,20 +185,16 @@ def test_main_high_quality_articles(
     mock_dependencies["fetcher"].get_stream_contents.return_value = {"items": items}
 
     # Mock MongoDB behavior for the new flow:
-    # 1. First, find_one returns None for all items (they don't exist yet)
-    # 2. Then, find returns the items as pending for processing
+    # 1. First, item_exists returns False for all items (they don't exist yet)
+    # 2. Then, get_items_by_status returns the items as pending for processing
     pending_items = [
         {**item, "category": "ML", "processing_status": "pending"} for item in items
     ]
 
-    # Mock the MongoDB find method to return pending items for Step 2
-    # and empty list for Step 3 (no unpublished articles)
-    mock_dependencies["mongo"].feed_items.find.side_effect = [
-        MagicMock(
-            sort=MagicMock(return_value=pending_items)
-        ),  # Step 2: pending articles
-        [],  # Step 3: no unpublished articles
-    ]
+    # Mock MongoDB methods properly for the 3-step flow
+    mock_dependencies["mongo"].item_exists.return_value = False  # Items don't exist yet
+    mock_dependencies["mongo"].get_items_by_status.return_value = pending_items
+    mock_dependencies["mongo"].get_filtered_items.return_value = []
 
     # Make first 12 items high quality (>= 0.6 relevance)
     mock_dependencies["llm"].analyze_item.side_effect = [
@@ -217,20 +230,16 @@ def test_main_no_high_quality_articles(
     mock_dependencies["fetcher"].get_stream_contents.return_value = {"items": items}
 
     # Mock MongoDB behavior for the new flow:
-    # 1. First, find_one returns None for all items (they don't exist yet)
-    # 2. Then, find returns the items as pending for processing
+    # 1. First, item_exists returns False for all items (they don't exist yet)
+    # 2. Then, get_items_by_status returns the items as pending for processing
     pending_items = [
         {**item, "category": "ML", "processing_status": "pending"} for item in items
     ]
 
-    # Mock the MongoDB find method to return pending items for Step 2
-    # and empty list for Step 3 (no unpublished articles)
-    mock_dependencies["mongo"].feed_items.find.side_effect = [
-        MagicMock(
-            sort=MagicMock(return_value=pending_items)
-        ),  # Step 2: pending articles
-        [],  # Step 3: no unpublished articles
-    ]
+    # Mock MongoDB methods properly for the 3-step flow
+    mock_dependencies["mongo"].item_exists.return_value = False  # Items don't exist yet
+    mock_dependencies["mongo"].get_items_by_status.return_value = pending_items
+    mock_dependencies["mongo"].get_filtered_items.return_value = []
 
     # Make all items low quality (< 0.6 relevance)
     mock_dependencies["llm"].analyze_item.return_value = {
@@ -343,13 +352,10 @@ def test_main_unpublished_articles_trigger_feed_update(
         }
     ]
 
-    # Mock the MongoDB find method calls
-    mock_dependencies["mongo"].feed_items.find.side_effect = [
-        MagicMock(
-            sort=MagicMock(return_value=pending_items)
-        ),  # Step 2: pending articles
-        unpublished_articles,  # Step 3: unpublished high-quality articles
-    ]
+    # Mock MongoDB methods properly for the 3-step flow
+    mock_dependencies["mongo"].item_exists.return_value = False  # Items don't exist yet
+    mock_dependencies["mongo"].get_items_by_status.return_value = pending_items
+    mock_dependencies["mongo"].get_filtered_items.return_value = unpublished_articles
 
     # Make all new items high quality but below threshold (3 < 10)
     mock_dependencies["llm"].analyze_item.return_value = {"relevance_score": 0.8}

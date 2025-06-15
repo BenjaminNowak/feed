@@ -61,7 +61,7 @@ class PromptTuner:  # pragma: no cover
             article_ids, target_scores, rationales
         ):
             # Get article from MongoDB
-            article = self.mongo_client.feed_items.find_one({"id": article_id})
+            article = self.mongo_client.get_item(article_id)
             if not article:
                 logger.warning(f"Article {article_id} not found")
                 continue

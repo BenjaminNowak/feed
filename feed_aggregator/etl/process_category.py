@@ -103,7 +103,7 @@ def _process_single_item(
         quality_threshold: Quality threshold for the category
     """
     # Check if item exists and has been analyzed
-    existing_item = mongo_client.feed_items.find_one({"id": item["id"]})
+    existing_item = mongo_client.get_item(item["id"])
     if existing_item and "llm_analysis" in existing_item:
         logger.debug("Item already analyzed, skipping...")
         return None
@@ -139,7 +139,7 @@ def _process_single_item(
     # Add analyses to item
     item["content_analysis"] = content_analysis
     item["llm_analysis"] = llm_analysis
-    item["processing_status"] = "processed"
+    item["processing_status"] = mongo_client.STATUS_PROCESSED
 
     # Print analysis results
     relevance_score = llm_analysis["relevance_score"]
@@ -147,7 +147,7 @@ def _process_single_item(
 
     if llm_analysis.get("filtered_reason"):
         logger.info(f"Filtered reason: {llm_analysis['filtered_reason']}")
-        item["processing_status"] = "filtered_out"
+        item["processing_status"] = mongo_client.STATUS_FILTERED
         return 0  # Not high quality
 
     if relevance_score >= quality_threshold:  # Use category-specific threshold
@@ -216,13 +216,12 @@ def fetch_category_articles(category_key: str, category_config: CategoryConfig) 
         new_articles = 0
         for item in data["items"]:
             # Check if item already exists
-            existing_item = mongo_client.feed_items.find_one({"id": item["id"]})
-            if existing_item:
+            if mongo_client.item_exists(item["id"]):
                 continue
 
             # Add category and processing status
             item["category"] = category_key
-            item["processing_status"] = "pending"
+            item["processing_status"] = mongo_client.STATUS_PENDING
 
             # Clean up and store item
             _clean_item_data(item)
@@ -281,10 +280,8 @@ def _process_category_batch(
     mongo_client = components["mongo_client"]
 
     # Get pending articles for this category
-    pending_articles = list(
-        mongo_client.feed_items.find(
-            {"category": category_key, "processing_status": "pending"}
-        ).limit(batch_size)
+    pending_articles = mongo_client.get_items_by_status(
+        status=mongo_client.STATUS_PENDING, category=category_key, limit=batch_size
     )
 
     if not pending_articles:
@@ -317,10 +314,7 @@ def _process_category_batch(
             if "url_content" in item:
                 update_data["url_content"] = item["url_content"]
 
-            mongo_client.feed_items.update_one(
-                {"id": item["id"]},
-                {"$set": update_data},
-            )
+            mongo_client.update_item(item["id"], update_data)
 
             # Update stats
             category_stats[category_key]["processed"] += 1
@@ -418,24 +412,14 @@ def process_pending_articles_round_robin(
 
 def _print_final_stats(mongo_client):
     """Print final MongoDB statistics."""
-    metrics = {
-        "total_items": mongo_client.feed_items.count_documents({}),
-        "pending_items": mongo_client.feed_items.count_documents(
-            {"processing_status": "pending"}
-        ),
-        "processed_items": mongo_client.feed_items.count_documents(
-            {"processing_status": "processed"}
-        ),
-        "filtered_items": mongo_client.feed_items.count_documents(
-            {"processing_status": "filtered_out"}
-        ),
-    }
+    metrics = mongo_client.get_status_counts()
 
     logger.info("Final MongoDB Status:")
-    logger.info(f"Total items: {metrics['total_items']}")
-    logger.info(f"Pending items: {metrics['pending_items']}")
-    logger.info(f"Processed items: {metrics['processed_items']}")
-    logger.info(f"Filtered items: {metrics['filtered_items']}")
+    logger.info(f"Total items: {metrics['total']}")
+    logger.info(f"Pending items: {metrics['pending']}")
+    logger.info(f"Processed items: {metrics['processed']}")
+    logger.info(f"Filtered items: {metrics['filtered']}")
+    logger.info(f"Published items: {metrics['published']}")
 
 
 def _process_pending_articles_step(
@@ -447,12 +431,10 @@ def _process_pending_articles_step(
     logger.info(f"{'='*50}")
 
     # Get all pending articles for this category from MongoDB
-    pending_articles = list(
-        mongo_client.feed_items.find(
-            {"category": category_key, "processing_status": "pending"}
-        ).sort(
-            "published", 1
-        )  # Process oldest first
+    pending_articles = mongo_client.get_items_by_status(
+        status=mongo_client.STATUS_PENDING,
+        category=category_key,
+        sort_field="published",
     )
 
     logger.info(f"Found {len(pending_articles)} pending articles to process")
@@ -494,10 +476,7 @@ def _process_pending_articles_step(
             if "url_content" in item:
                 update_data["url_content"] = item["url_content"]
 
-            mongo_client.feed_items.update_one(
-                {"id": item["id"]},
-                {"$set": update_data},
-            )
+            mongo_client.update_item(item["id"], update_data)
 
             if quality_result == 1:  # High quality
                 high_quality_count += 1
@@ -529,18 +508,8 @@ def _publish_unpublished_articles_step(
 
     # Check if there are any high-quality processed articles that haven't been published
     quality_threshold = category_config.get_quality_threshold(category_key)
-    unpublished_articles = list(
-        mongo_client.feed_items.find(
-            {
-                "category": category_key,
-                "processing_status": "processed",
-                "llm_analysis.relevance_score": {"$gte": quality_threshold},
-                "$or": [
-                    {"published_to_feed": {"$exists": False}},
-                    {"published_to_feed": False},
-                ],
-            }
-        )
+    unpublished_articles = mongo_client.get_filtered_items(
+        min_score=quality_threshold, category=category_key
     )
 
     if unpublished_articles:

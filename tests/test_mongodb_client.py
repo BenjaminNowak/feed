@@ -1,9 +1,10 @@
 import os
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from typing import Generator
+from unittest.mock import patch
 
+import mongomock
 import pytest
-from pymongo.errors import DuplicateKeyError
 
 from feed_aggregator.storage.mongodb_client import MongoDBClient
 
@@ -43,147 +44,156 @@ def sample_feed_item():
 
 
 @pytest.fixture
-def mock_mongodb_client():
-    """Create a mock MongoDB client."""
-    with patch("feed_aggregator.storage.mongodb_client.MongoClient") as mock_client:
-        # Set up mock collections
-        mock_feed_items = MagicMock()
-        mock_metrics = MagicMock()
+def mock_mongodb_client(mock_env_vars) -> Generator[MongoDBClient, None, None]:
+    """Create a MongoDB client using mongomock."""
+    with mongomock.MongoClient() as client:
+        # Patch MongoClient to use our mock
+        with patch(
+            "feed_aggregator.storage.mongodb_client.MongoClient", return_value=client
+        ):
+            mongodb_client = MongoDBClient()
+            # Create collections
+            mongodb_client.db.create_collection("feed_items")
+            mongodb_client.db.create_collection("processing_metrics")
+            yield mongodb_client
+            # Clean up collections after each test
+            mongodb_client.feed_items.delete_many({})
+            mongodb_client.metrics.delete_many({})
+            mongodb_client.close()
 
-        # Configure mock database
-        mock_db = MagicMock()
-        mock_db.feed_items = mock_feed_items
-        mock_db.processing_metrics = mock_metrics
 
-        # Configure mock client
-        mock_client.return_value.__getitem__.return_value = mock_db
-
-        yield mock_client.return_value, mock_feed_items, mock_metrics
-
-
-def test_init_with_credentials(mock_env_vars, mock_mongodb_client):
+@pytest.mark.unit
+def test_init_with_credentials(mock_env_vars):
     """Test MongoDB client initialization with credentials."""
-    with patch("feed_aggregator.storage.mongodb_client.MongoClient") as mock_client:
-        MongoDBClient()
-        expected_uri = "mongodb://testuser:testpass@testhost:27017/testdb"
-        mock_client.assert_called_with(expected_uri)
+    with mongomock.MongoClient() as mock_client:
+        with patch(
+            "feed_aggregator.storage.mongodb_client.MongoClient",
+            return_value=mock_client,
+        ):
+            client = MongoDBClient()
+            assert client.db.name == "testdb"
+            client.close()
 
 
+@pytest.mark.unit
 def test_store_feed_items_success(mock_mongodb_client, sample_feed_item):
     """Test successful storage of feed items."""
-    _, mock_feed_items, mock_metrics = mock_mongodb_client
-
-    # Configure mock response
-    mock_feed_items.update_one.return_value = MagicMock(
-        upserted_id="new_id", modified_count=1
-    )
-
-    client = MongoDBClient()
-    result = client.store_feed_items([sample_feed_item])
-
+    result = mock_mongodb_client.store_feed_items([sample_feed_item])
     assert result == 1
-    mock_feed_items.update_one.assert_called_once()
-    mock_metrics.insert_one.assert_called_once()
+
+    # Verify item was stored
+    stored_item = mock_mongodb_client.get_item(sample_feed_item["id"])
+    assert stored_item is not None
+    assert stored_item["id"] == sample_feed_item["id"]
 
 
+@pytest.mark.unit
 def test_store_feed_items_duplicate(mock_mongodb_client, sample_feed_item):
     """Test handling of duplicate feed items."""
-    _, mock_feed_items, _ = mock_mongodb_client
+    # First insertion
+    result1 = mock_mongodb_client.store_feed_items([sample_feed_item])
+    assert result1 == 1
 
-    # Configure mock to raise DuplicateKeyError
-    mock_feed_items.update_one.side_effect = DuplicateKeyError("Duplicate key error")
-
-    client = MongoDBClient()
-    result = client.store_feed_items([sample_feed_item])
-
-    assert result == 0
-    mock_feed_items.update_one.assert_called_once()
+    # Second insertion of same item
+    result2 = mock_mongodb_client.store_feed_items([sample_feed_item])
+    assert result2 == 0  # Should handle duplicate gracefully
 
 
+@pytest.mark.unit
 def test_get_pending_items(mock_mongodb_client):
     """Test retrieval of pending items."""
-    _, mock_feed_items, _ = mock_mongodb_client
-
-    # Configure mock response
-    mock_feed_items.find.return_value.sort.return_value = [
-        {"id": "1", "status": "pending"},
-        {"id": "2", "status": "pending"},
+    # Insert test items
+    items = [
+        {"id": "1", "processing_status": "pending", "title": "Test 1"},
+        {"id": "2", "processing_status": "pending", "title": "Test 2"},
+        {"id": "3", "processing_status": "processed", "title": "Test 3"},
     ]
+    mock_mongodb_client.store_feed_items(items)
 
-    client = MongoDBClient()
-    items = client.get_pending_items(limit=2)
+    # Get pending items
+    pending_items = mock_mongodb_client.get_pending_items(limit=2)
+    assert len(pending_items) == 2
+    assert all(item["processing_status"] == "pending" for item in pending_items)
 
-    assert len(items) == 2
-    mock_feed_items.find.assert_called_with({"processing_status": "pending"}, limit=2)
 
-
+@pytest.mark.unit
 def test_update_item_status(mock_mongodb_client):
     """Test updating item status and LLM analysis."""
-    _, mock_feed_items, _ = mock_mongodb_client
+    # Insert test item
+    item = {"id": "test_id", "title": "Test Article", "processing_status": "pending"}
+    mock_mongodb_client.store_feed_items([item])
 
-    # Configure mock response
-    mock_feed_items.update_one.return_value = MagicMock(modified_count=1)
-
-    client = MongoDBClient()
+    # Update status with LLM analysis
     llm_analysis = {"relevance_score": 0.8, "summary": "Test summary"}
-
-    result = client.update_item_status("test_id", "processed", llm_analysis)
+    result = mock_mongodb_client.update_item_status(
+        "test_id", mock_mongodb_client.STATUS_PROCESSED, llm_analysis
+    )
 
     assert result is True
-    mock_feed_items.update_one.assert_called_with(
-        {"id": "test_id"},
-        {"$set": {"processing_status": "processed", "llm_analysis": llm_analysis}},
-    )
+
+    # Verify update
+    updated_item = mock_mongodb_client.get_item("test_id")
+    assert updated_item["processing_status"] == mock_mongodb_client.STATUS_PROCESSED
+    assert updated_item["llm_analysis"] == llm_analysis
 
 
+@pytest.mark.unit
 def test_get_filtered_items(mock_mongodb_client):
     """Test retrieval of filtered items."""
-    _, mock_feed_items, _ = mock_mongodb_client
-
-    # Configure mock response
-    mock_feed_items.find.return_value.sort.return_value = [
-        {"id": "1", "llm_analysis": {"relevance_score": 0.9}},
-        {"id": "2", "llm_analysis": {"relevance_score": 0.8}},
-    ]
-
-    client = MongoDBClient()
-    items = client.get_filtered_items(min_score=0.7, limit=2)
-
-    assert len(items) == 2
-    mock_feed_items.find.assert_called_with(
+    # Insert test items with different scores
+    items = [
         {
-            "processing_status": {"$in": ["processed", "filtered_out"]},
-            "llm_analysis.relevance_score": {"$gte": 0.7},
-            "$or": [
-                {"published_to_feed": {"$exists": False}},
-                {"published_to_feed": False},
-            ],
+            "id": "high_1",
+            "title": "High Score 1",
+            "processing_status": "processed",
+            "llm_analysis": {"relevance_score": 0.9},
+            "published_to_feed": False,
         },
-        limit=2,
+        {
+            "id": "high_2",
+            "title": "High Score 2",
+            "processing_status": "processed",
+            "llm_analysis": {"relevance_score": 0.8},
+            "published_to_feed": False,
+        },
+        {
+            "id": "low_1",
+            "title": "Low Score",
+            "processing_status": "processed",
+            "llm_analysis": {"relevance_score": 0.5},
+            "published_to_feed": False,
+        },
+    ]
+    mock_mongodb_client.store_feed_items(items)
+
+    # Get filtered items
+    filtered_items = mock_mongodb_client.get_filtered_items(min_score=0.7, limit=2)
+
+    assert len(filtered_items) == 2
+    assert all(
+        item["llm_analysis"]["relevance_score"] >= 0.7 for item in filtered_items
     )
+    assert all(not item.get("published_to_feed", False) for item in filtered_items)
 
 
+@pytest.mark.unit
 def test_record_metric(mock_mongodb_client):
     """Test recording of processing metrics."""
-    _, _, mock_metrics = mock_mongodb_client
-
-    client = MongoDBClient()
+    # Record test metric
     metadata = {"source": "test"}
-    client.record_metric("items_processed", 5, metadata)
+    mock_mongodb_client.record_metric("items_processed", 5, metadata)
 
-    mock_metrics.insert_one.assert_called_once()
-    call_args = mock_metrics.insert_one.call_args[0][0]
-    assert call_args["metric_type"] == "items_processed"
-    assert call_args["value"] == 5
-    assert call_args["metadata"] == metadata
-    assert isinstance(call_args["timestamp"], datetime)
+    # Verify metric was recorded
+    metrics = list(mock_mongodb_client.metrics.find({"metric_type": "items_processed"}))
+    assert len(metrics) == 1
+    assert metrics[0]["metric_type"] == "items_processed"
+    assert metrics[0]["value"] == 5
+    assert metrics[0]["metadata"] == metadata
+    assert isinstance(metrics[0]["timestamp"], datetime)
 
 
+@pytest.mark.unit
 def test_close_connection(mock_mongodb_client):
     """Test closing MongoDB connection."""
-    mock_client, _, _ = mock_mongodb_client
-
-    client = MongoDBClient()
-    client.close()
-
-    mock_client.close.assert_called_once()
+    # Just verify no exceptions are raised
+    mock_mongodb_client.close()

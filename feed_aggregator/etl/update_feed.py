@@ -182,21 +182,7 @@ def main():
         print(f"\nAdded {articles_added} new articles to feed.xml")
 
         # Print final stats
-        metrics = {
-            "total_items": mongo_client.feed_items.count_documents({}),
-            "pending_items": mongo_client.feed_items.count_documents(
-                {"processing_status": "pending"}
-            ),
-            "processed_items": mongo_client.feed_items.count_documents(
-                {"processing_status": "processed"}
-            ),
-            "filtered_items": mongo_client.feed_items.count_documents(
-                {"processing_status": "filtered_out"}
-            ),
-            "published_items": mongo_client.feed_items.count_documents(
-                {"processing_status": "published"}
-            ),
-        }
+        metrics = mongo_client.get_status_counts()
 
         print("\nMongoDB Status:")
         print(f"Total items: {metrics['total_items']}")
