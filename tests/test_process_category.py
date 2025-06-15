@@ -4,8 +4,13 @@ from datetime import datetime
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+import responses
 
-from feed_aggregator.etl.process_category import git_commit_and_push, main
+from feed_aggregator.etl.process_category import (
+    _clean_item_data,
+    git_commit_and_push,
+    main,
+)
 
 
 # Test data fixtures
@@ -244,6 +249,68 @@ def test_main_no_high_quality_articles(
 
     # Verify items were stored during fetch phase (called once for each item)
     assert mock_dependencies["mongo"].store_feed_items.call_count == 5
+
+
+@responses.activate
+def test_clean_item_data_with_url():
+    """Test URL content fetching during item cleaning."""
+    # Mock URL content
+    test_url = "http://example.com/article"
+    mock_html = """
+    <html>
+        <head>
+            <title>Test Article</title>
+            <meta name="description" content="Test description">
+        </head>
+        <body>
+            <article>Test content</article>
+        </body>
+    </html>
+    """
+    responses.add(
+        responses.GET, test_url, body=mock_html, status=200, content_type="text/html"
+    )
+
+    # Test item with URL
+    item = {
+        "alternate": [{"href": test_url}],
+        "leoSummary": {"sentences": [{"text": "test"}]},
+    }
+
+    _clean_item_data(item)
+
+    assert "url_content" in item
+    assert item["url_content"]["title"] == "Test Article"
+    assert item["url_content"]["description"] == "Test description"
+    assert "Test content" in item["url_content"]["main_content"]
+    assert item["leoSummary"]["sentences"] == ["test"]
+
+
+@responses.activate
+def test_clean_item_data_url_fetch_failure():
+    """Test handling of URL fetch failures."""
+    test_url = "http://example.com/error"
+    responses.add(responses.GET, test_url, status=404)
+
+    item = {
+        "alternate": [{"href": test_url}],
+        "leoSummary": {"sentences": [{"text": "test"}]},
+    }
+
+    _clean_item_data(item)
+
+    assert "url_content" not in item
+    assert item["leoSummary"]["sentences"] == ["test"]
+
+
+def test_clean_item_data_no_url():
+    """Test handling of items without URLs."""
+    item = {"leoSummary": {"sentences": [{"text": "test"}]}}
+
+    _clean_item_data(item)
+
+    assert "url_content" not in item
+    assert item["leoSummary"]["sentences"] == ["test"]
 
 
 def test_main_unpublished_articles_trigger_feed_update(

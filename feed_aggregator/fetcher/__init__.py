@@ -1,6 +1,9 @@
+"""Feed fetcher package."""
 import os
 
 from feedly.api_client.session import FeedlySession
+
+from feed_aggregator.fetcher.url_fetcher import URLFetcher
 
 
 class FeedlyFetcher:
@@ -238,3 +241,6 @@ class FeedlyFetcher:
 
         # Return only the requested count
         return {"id": stream_id, "items": sample_items[:count]}
+
+
+__all__ = ["FeedlyFetcher", "URLFetcher"]

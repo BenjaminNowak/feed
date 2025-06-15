@@ -51,11 +51,3 @@ repos:
     hooks:
       - id: detect-private-key
         name: Detect private keys
-
-  - repo: local
-    hooks:
-      - id: custom-secret-scanner
-        name: Custom secret pattern scanner
-        entry: scripts/scan_secrets.sh
-        language: script
-        files: ''  # Scan all files

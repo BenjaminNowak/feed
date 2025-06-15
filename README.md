@@ -152,6 +152,39 @@ For production deployment, use Docker with secrets management:
    docker-compose up -d
    ```
 
+### Secrets Management
+
+The project uses a robust secrets management approach:
+
+1. **Docker Secrets (Recommended for Production)**
+   - Store sensitive data in `docker/secrets/` directory:
+     ```
+     docker/secrets/
+     ├── mongo_username.txt
+     ├── mongo_password.txt
+     ├── feedly_token.txt
+     ├── openai_api_key.txt
+     └── github_token.txt
+     ```
+   - These files are automatically loaded by Docker Compose
+   - The `docker/secrets/` directory is gitignored
+
+2. **Environment Variables (Development/Testing)**
+   - Use environment variables for local development:
+     ```bash
+     export FEEDLY_TOKEN='your_feedly_access_token'
+     export FEEDLY_USER='your_feedly_user_id'
+     export MONGODB_USERNAME='your_mongodb_username'
+     export MONGODB_PASSWORD='your_mongodb_password'
+     export OPENAI_API_KEY='your_openai_api_key'
+     ```
+   - Never commit these values to version control
+
+3. **Secret Detection**
+   - The project uses [Gitleaks](https://github.com/gitleaks/gitleaks) in pre-commit hooks to prevent accidental commit of secrets
+   - Also includes detect-private-key hook to catch any committed private keys
+   - Run `pre-commit install` to enable these checks locally
+
 ### Running Tests
 
 ```bash

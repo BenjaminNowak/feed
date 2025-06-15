@@ -2,6 +2,9 @@
 """Query MongoDB for a specific article."""
 
 import argparse
+import json
+
+from bson import json_util
 
 from feed_aggregator.storage.mongodb_client import MongoDBClient
 
@@ -9,6 +12,9 @@ from feed_aggregator.storage.mongodb_client import MongoDBClient
 def parse_args():
     parser = argparse.ArgumentParser(description="Query MongoDB for a specific article")
     parser.add_argument("url", help="Feedly article URL to query")
+    parser.add_argument(
+        "--full", action="store_true", help="Display full document content"
+    )
     return parser.parse_args()
 
 
@@ -51,8 +57,12 @@ def main():
             else:
                 print("\nNo LLM analysis found")
 
-            # Show full document structure (truncated)
-            print(f"\nFull document keys: {list(article.keys())}")
+            # Show either full document or just the keys
+            if args.full:
+                print("\nFull document content:")
+                print(json.dumps(json.loads(json_util.dumps(article)), indent=2))
+            else:
+                print(f"\nFull document keys: {list(article.keys())}")
 
         else:
             print(f"\nArticle with ID '{feedly_id}' not found in MongoDB")

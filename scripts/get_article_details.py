@@ -35,6 +35,19 @@ def main():
             print(f"Content Length: {len(content)} characters")
             print(f"Content Preview: {content[:200]}...")
 
+            # Show URL content if available
+            if "url_content" in article:
+                url_content = article["url_content"]
+                print("\nURL Content:")
+                print(f"  Title: {url_content.get('title', 'No title')}")
+                print(
+                    f"  Description: {url_content.get('description', 'No description')}"
+                )
+                main_content = url_content.get("main_content", "")
+                print(f"  Main Content Length: {len(main_content)} characters")
+                if main_content:
+                    print(f"  Main Content Preview: {main_content[:200]}...")
+
             if "llm_analysis" in article:
                 llm = article["llm_analysis"]
                 print("\nLLM Analysis:")

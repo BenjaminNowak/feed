@@ -5,7 +5,7 @@ from typing import Optional
 
 from feed_aggregator.config.category_config import CategoryConfig
 from feed_aggregator.etl import update_feed
-from feed_aggregator.fetcher import FeedlyFetcher
+from feed_aggregator.fetcher import FeedlyFetcher, URLFetcher
 from feed_aggregator.processing.content_analyzer import ContentAnalyzer
 from feed_aggregator.processing.llm_filter import LLMFilter
 from feed_aggregator.storage.mongodb_client import MongoDBClient
@@ -104,18 +104,32 @@ def _process_single_item(
         print("Item already analyzed, skipping...")
         return None
 
-    # Run content analysis
-    content = item.get("content", {}).get(
+    # Get all available content
+    feedly_content = item.get("content", {}).get(
         "content", item.get("summary", {}).get("content", "")
     )
+    url_content = item.get("url_content", {})
 
+    # Combine content for analysis
+    combined_content = feedly_content
+    if url_content:
+        if url_content.get("main_content"):
+            combined_content = f"{combined_content}\n\n{url_content['main_content']}"
+        if url_content.get("description"):
+            combined_content = f"{combined_content}\n\n{url_content['description']}"
+
+    # Run content analysis
     content_analysis = content_analyzer.analyze_item(
-        {"content": content, "llm_analysis": {}}
+        {"content": combined_content, "llm_analysis": {}}
     )
 
-    # Run LLM analysis
+    # Run LLM analysis with all available content
     llm_analysis = llm_filter.analyze_item(
-        {"title": item.get("title", ""), "content": content}
+        {
+            "title": item.get("title", ""),
+            "content": combined_content,
+            "url_content_available": bool(url_content),
+        }
     )
 
     # Add analyses to item
@@ -140,13 +154,31 @@ def _process_single_item(
 
 
 def _clean_item_data(item):
-    """Clean up item data before storing."""
+    """Clean up item data before storing and fetch URL content."""
+    # Clean up leoSummary if present
     if "leoSummary" in item and "sentences" in item["leoSummary"]:
         # Convert sentence objects to strings
         item["leoSummary"]["sentences"] = [
             s["text"] if isinstance(s, dict) else s
             for s in item["leoSummary"]["sentences"]
         ]
+
+    # Fetch URL content if available
+    if "alternate" in item and item["alternate"]:
+        url = (
+            item["alternate"][0].get("href")
+            if isinstance(item["alternate"], list)
+            else None
+        )
+        if url:
+            try:
+                url_fetcher = URLFetcher()
+                url_content = url_fetcher.fetch_url_content(url)
+                if url_content:
+                    item["url_content"] = url_content
+                url_fetcher.close()
+            except Exception as e:
+                print(f"Error fetching URL content: {e}")
 
 
 def fetch_category_articles(category_key: str, category_config: CategoryConfig) -> int:
@@ -269,15 +301,19 @@ def _process_category_batch(
                 continue
 
             # Update item in database
+            update_data = {
+                "content_analysis": item.get("content_analysis"),
+                "llm_analysis": item.get("llm_analysis"),
+                "processing_status": item.get("processing_status"),
+            }
+
+            # Include URL content if available
+            if "url_content" in item:
+                update_data["url_content"] = item["url_content"]
+
             mongo_client.feed_items.update_one(
                 {"id": item["id"]},
-                {
-                    "$set": {
-                        "content_analysis": item.get("content_analysis"),
-                        "llm_analysis": item.get("llm_analysis"),
-                        "processing_status": item.get("processing_status"),
-                    }
-                },
+                {"$set": update_data},
             )
 
             # Update stats
@@ -440,15 +476,19 @@ def _process_pending_articles_step(
                 continue
 
             # Update the item in MongoDB with analysis results
+            update_data = {
+                "content_analysis": item.get("content_analysis"),
+                "llm_analysis": item.get("llm_analysis"),
+                "processing_status": item.get("processing_status"),
+            }
+
+            # Include URL content if available
+            if "url_content" in item:
+                update_data["url_content"] = item["url_content"]
+
             mongo_client.feed_items.update_one(
                 {"id": item["id"]},
-                {
-                    "$set": {
-                        "content_analysis": item.get("content_analysis"),
-                        "llm_analysis": item.get("llm_analysis"),
-                        "processing_status": item.get("processing_status"),
-                    }
-                },
+                {"$set": update_data},
             )
 
             if quality_result == 1:  # High quality
